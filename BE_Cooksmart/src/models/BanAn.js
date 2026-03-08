@@ -15,7 +15,7 @@ const BanAn = sequelize.define(
             unique: true,
         },
         vi_tri: {
-            type: DataTypes.STRING(100), // Tầng 1, Sân thượng...
+            type: DataTypes.STRING(100), 
             allowNull: true,
         },
         ma_qr_code: {
