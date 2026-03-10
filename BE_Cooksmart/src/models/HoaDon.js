@@ -41,6 +41,7 @@ const HoaDon = sequelize.define(
     {
         tableName: "HoaDon",
         timestamps: false,
+        indexes: [],
     }
 );
 

@@ -30,6 +30,7 @@ const ChiTietHoaDon = sequelize.define(
     {
         tableName: "ChiTietHoaDon",
         timestamps: false,
+        indexes: [],
     }
 );
 

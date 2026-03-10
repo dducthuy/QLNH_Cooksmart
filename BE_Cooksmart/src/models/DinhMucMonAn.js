@@ -25,6 +25,7 @@ const DinhMucMonAn = sequelize.define(
     {
         tableName: "DinhMucMonAn",
         timestamps: false,
+        indexes: [],
     }
 );
 

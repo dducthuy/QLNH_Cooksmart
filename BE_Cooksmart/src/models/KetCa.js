@@ -41,6 +41,7 @@ const KetCa = sequelize.define(
     {
         tableName: "KetCa",
         timestamps: false,
+        indexes: [],
     }
 );
 

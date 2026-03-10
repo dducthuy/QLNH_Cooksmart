@@ -61,10 +61,7 @@ exports.layTatCaDinhMuc = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/dinh-muc-mon-an
-//  Admin only – Thêm định mức nguyên liệu cho món ăn
-// ============================================================
+
 exports.taoDinhMuc = async (req, res, next) => {
     try {
         const { id_mon_an, id_nguyen_lieu, luong_tieu_hao } = req.body;
@@ -113,9 +110,7 @@ exports.taoDinhMuc = async (req, res, next) => {
 };
 
 // ============================================================
-//  PATCH /api/dinh-muc-mon-an/:id
-//  Admin only – Cập nhật lượng tiêu hao của một định mức
-// ============================================================
+
 exports.capNhatDinhMuc = async (req, res, next) => {
     try {
         const dinhMuc = await DinhMucMonAn.findByPk(req.params.id);
@@ -144,10 +139,7 @@ exports.capNhatDinhMuc = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/dinh-muc-mon-an/:id
-//  Admin only – Xóa một định mức nguyên liệu
-// ============================================================
+
 exports.xoaDinhMuc = async (req, res, next) => {
     try {
         const dinhMuc = await DinhMucMonAn.findByPk(req.params.id);

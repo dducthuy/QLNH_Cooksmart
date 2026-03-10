@@ -37,6 +37,7 @@ const MonAn = sequelize.define(
     {
         tableName: "MonAn",
         timestamps: false,
+        indexes: [],
     }
 );
 

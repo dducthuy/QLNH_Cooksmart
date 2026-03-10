@@ -19,6 +19,9 @@ const io = new Server(server, {
     },
 });
 
+// Lưu Socket.io vào App để Controller có thể dùng
+app.set("socketio", io);
+
 // 3. Xử lý sự kiện Socket.io Real-time
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
