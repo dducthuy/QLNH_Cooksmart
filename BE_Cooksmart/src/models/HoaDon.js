@@ -33,6 +33,14 @@ const HoaDon = sequelize.define(
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         },
+        id_khuyen_mai: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        giam_gia: {
+            type: DataTypes.DECIMAL(15, 2),
+            defaultValue: 0,
+        },
         da_chot_kho: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,

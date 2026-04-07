@@ -1,6 +1,4 @@
-// ⚠️ QUAN TRỌNG: dotenv phải là dòng ĐẦU TIÊN trước mọi require khác
-// Lý do: app.js → auth.route → auth.controller → models/index → db.js
-// Nếu dotenv chạy sau, db.js sẽ không đọc được biến môi trường → "No database selected"
+
 require("dotenv").config();
 
 const http = require("http");
@@ -19,7 +17,7 @@ const io = new Server(server, {
     },
 });
 
-// Lưu Socket.io vào App để Controller có thể dùng
+
 app.set("socketio", io);
 
 // 3. Xử lý sự kiện Socket.io Real-time
@@ -54,7 +52,7 @@ server.listen(PORT, () => {
 
 // 5. Đồng bộ tất cả bảng vào Database
 db.sequelize
-    .sync({ alter: true })
+    .sync() // Bỏ { alter: true } để tránh tạo nhiều index khóa ngoại bị trùng lặp
     .then(() => {
         console.log("✅ Đồng bộ Database hoàn tất – tất cả 13 bảng sẵn sàng!");
     })

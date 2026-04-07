@@ -24,3 +24,16 @@ export interface ToiResponse {
   status: "success";
   data: NguoiDung;
 }
+
+export interface DangKyBody {
+  ten_dang_nhap: string;
+  mat_khau: string;
+  ho_ten: string;
+  vai_tro: VaiTro;
+}
+
+export interface DangKyResponse {
+  status: "success";
+  message: string;
+  data: NguoiDung;
+}

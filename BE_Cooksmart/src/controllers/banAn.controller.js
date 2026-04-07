@@ -124,11 +124,7 @@ exports.capNhatBanAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/ban-an/:id
-//  Admin only – Xóa bàn ăn
-//  ⚠️ Chặn xóa nếu bàn đang có hóa đơn chưa thanh toán
-// ============================================================
+
 exports.xoaBanAn = async (req, res, next) => {
     try {
         const banAn = await BanAn.findByPk(req.params.id);

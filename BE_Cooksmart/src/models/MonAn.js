@@ -26,11 +26,11 @@ const MonAn = sequelize.define(
             allowNull: true,
         },
         mo_ta_ai: {
-            type: DataTypes.TEXT, // Dữ liệu để AI Chatbot tư vấn cho khách
+            type: DataTypes.TEXT, 
             allowNull: true,
         },
         con_hang: {
-            type: DataTypes.BOOLEAN, // Bếp báo hết món real-time
+            type: DataTypes.BOOLEAN, 
             defaultValue: true,
         },
     },

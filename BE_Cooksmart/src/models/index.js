@@ -14,6 +14,9 @@ const KetCa          = require("./KetCa");
 const BaoCaoHaoHut   = require("./BaoCaoHaoHut");
 const BaoCaoTaiChinh = require("./BaoCaoTaiChinh");
 const ThongBao       = require("./ThongBao");
+const KhuyenMai      = require("./KhuyenMai");
+const Combo          = require("./Combo");
+const ChiTietCombo   = require("./ChiTietCombo");
 
 // ===================== ASSOCIATIONS =====================
 
@@ -61,6 +64,22 @@ KetCa.belongsTo(NguoiDung, { foreignKey: "id_nhan_vien" });
 NguyenLieu.hasMany(BaoCaoHaoHut, { foreignKey: "id_nguyen_lieu" });
 BaoCaoHaoHut.belongsTo(NguyenLieu, { foreignKey: "id_nguyen_lieu" });
 
+// [KhuyenMai] 1 -- N [HoaDon]
+KhuyenMai.hasMany(HoaDon, { foreignKey: "id_khuyen_mai" });
+HoaDon.belongsTo(KhuyenMai, { foreignKey: "id_khuyen_mai" });
+
+// [Combo] 1 -- N [ChiTietCombo]
+Combo.hasMany(ChiTietCombo, { foreignKey: "id_combo", onDelete: "CASCADE" });
+ChiTietCombo.belongsTo(Combo, { foreignKey: "id_combo" });
+
+// [MonAn] 1 -- N [ChiTietCombo]
+MonAn.hasMany(ChiTietCombo, { foreignKey: "id_mon_an" });
+ChiTietCombo.belongsTo(MonAn, { foreignKey: "id_mon_an" });
+
+// [Combo] 1 -- N [ChiTietHoaDon]
+Combo.hasMany(ChiTietHoaDon, { foreignKey: "id_combo" });
+ChiTietHoaDon.belongsTo(Combo, { foreignKey: "id_combo" });
+
 // BaoCaoTaiChinh & ThongBao không có FK (standalone tables)
 
 // ===================== EXPORTS =====================
@@ -79,4 +98,7 @@ module.exports = {
     BaoCaoHaoHut,
     BaoCaoTaiChinh,
     ThongBao,
+    KhuyenMai,
+    Combo,
+    ChiTietCombo,
 };

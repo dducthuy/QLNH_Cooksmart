@@ -5,7 +5,10 @@ const {
   DanhMuc,
   MonAn,
   BanAn,
-  NguyenLieu
+  NguyenLieu,
+  KhuyenMai,
+  Combo,
+  ChiTietCombo
 } = require('./models');
 
 async function seedDatabase() {
@@ -59,15 +62,65 @@ async function seedDatabase() {
       { id_danh_muc: createdCategories[3].id, ten_mon: 'Nước chanh', gia_tien: 20000, mo_ta_ai: 'Nước chanh tươi mát, giải khát ngày hè.', con_hang: true },
       { id_danh_muc: createdCategories[2].id, ten_mon: 'Chè khúc bạch', gia_tien: 35000, mo_ta_ai: 'Chè khúc bạch thanh mát, giải nhiệt cực tốt.', con_hang: true }
     ];
+    let createdMonAn = [];
     for (const monAn of monAnData) {
-      await MonAn.findOrCreate({
+      const [ma, created] = await MonAn.findOrCreate({
         where: { ten_mon: monAn.ten_mon },
         defaults: monAn
       });
+      createdMonAn.push(ma);
     }
     console.log("✔️ Thêm món ăn hoàn tất!");
 
-    // 4. Thêm Bàn Ăn
+    // 4. Thêm Khuyến Mãi
+    console.log("⏳ Đang thêm khuyến mãi mẫu...");
+    const khuyenMaiData = [
+      { 
+        ten_km: 'Khai trương giảm giá 10%', 
+        loai_km: 'PhanTram', 
+        gia_tri_km: 10, 
+        gia_tri_dh_toi_thieu: 200000, 
+        ngay_bat_dau: new Date(), 
+        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) 
+      },
+      { 
+        ten_km: 'Giảm 50k cho đơn từ 1 triệu', 
+        loai_km: 'SoTien', 
+        gia_tri_km: 50000, 
+        gia_tri_dh_toi_thieu: 1000000, 
+        ngay_bat_dau: new Date(), 
+        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) 
+      }
+    ];
+    for (const km of khuyenMaiData) {
+      await KhuyenMai.findOrCreate({
+        where: { ten_km: km.ten_km },
+        defaults: km
+      });
+    }
+    console.log("✔️ Thêm khuyến mãi hoàn tất!");
+
+    // 5. Thêm Combo
+    console.log("⏳ Đang thêm combo mẫu...");
+    const comboData = [
+      { ten_combo: 'Combo Bữa Trưa Tiết Kiệm', gia_tien: 80000, mo_ta: 'Gồm 1 Cơm tấm sườn bì và 1 Nước chanh', trang_thai: true }
+    ];
+    for (const cb of comboData) {
+      const [combo, created] = await Combo.findOrCreate({
+        where: { ten_combo: cb.ten_combo },
+        defaults: cb
+      });
+      if (created) {
+        // Thêm chi tiết combo (Cơm tấm sườn bì + Nước chanh)
+        const comTam = createdMonAn.find(m => m.ten_mon === 'Cơm tấm sườn bì');
+        const nuocChanh = createdMonAn.find(m => m.ten_mon === 'Nước chanh');
+        if (comTam) await ChiTietCombo.create({ id_combo: combo.id, id_mon_an: comTam.id, so_luong: 1 });
+        if (nuocChanh) await ChiTietCombo.create({ id_combo: combo.id, id_mon_an: nuocChanh.id, so_luong: 1 });
+      }
+    }
+    console.log("✔️ Thêm combo hoàn tất!");
+
+    // 6. Thêm Bàn Ăn
     console.log("⏳ Đang thêm bàn ăn...");
     const banAnData = [
       { so_ban: 'B01', vi_tri: 'Tầng 1 - Cửa Sổ', trang_thai_ban: 'Trong' },
@@ -83,7 +136,7 @@ async function seedDatabase() {
     }
     console.log("✔️ Thêm bàn ăn hoàn tất!");
 
-    // 5. Thêm Nguyên Liệu
+    // 7. Thêm Nguyên Liệu
     console.log("⏳ Đang thêm nguyên liệu...");
     const nguyenLieuData = [
       { ten_nguyen_lieu: 'Thịt bò phi lê', don_vi_tinh: 'kg', so_luong_kho_tong: 15.5, so_luong_tai_bep: 5.0, gia_nhap_gan_nhat: 250000 },

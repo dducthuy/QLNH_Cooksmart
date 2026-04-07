@@ -17,6 +17,10 @@ const ChiTietHoaDon = sequelize.define(
             type: DataTypes.UUID,
             allowNull: true,
         },
+        id_combo: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
         so_luong: {
             type: DataTypes.INTEGER,
             allowNull: false,

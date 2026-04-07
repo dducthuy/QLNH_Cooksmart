@@ -38,20 +38,20 @@ const baoVe = async (req, res, next) => {
             return next(new AppError("Tài khoản không còn tồn tại trong hệ thống!", 401));
         }
 
-        // [4] Kiểm tra tài khoản còn hoạt động không
+     
         if (!nguoiDung.trang_thai) {
             return next(new AppError("Tài khoản đã bị vô hiệu hóa!", 403));
         }
 
-        // Gán thông tin user vào request để controller sau sử dụng
+       
         req.nguoiDung = nguoiDung;
         next();
     } catch (err) {
-        // JWT hết hạn
+    
         if (err.name === "TokenExpiredError") {
             return next(new AppError("Phiên đăng nhập đã hết hạn! Vui lòng đăng nhập lại.", 401));
         }
-        // JWT bị giả mạo / không hợp lệ
+  
         if (err.name === "JsonWebTokenError") {
             return next(new AppError("Token không hợp lệ! Vui lòng đăng nhập lại.", 401));
         }

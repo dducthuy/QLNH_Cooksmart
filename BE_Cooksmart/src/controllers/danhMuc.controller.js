@@ -1,10 +1,7 @@
 const { DanhMuc, MonAn } = require("../models/index");
 const AppError = require("../utils/AppError");
 
-// ============================================================
-//  GET /api/danh-muc
-//  Public – Lấy tất cả danh mục
-// ============================================================
+
 exports.layTatCaDanhMuc = async (req, res, next) => {
     try {
         const danhSachDanhMuc = await DanhMuc.findAll({
@@ -22,10 +19,7 @@ exports.layTatCaDanhMuc = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/danh-muc/:id
-//  Public – Lấy chi tiết một danh mục theo ID
-// ============================================================
+
 exports.layDanhMucTheoId = async (req, res, next) => {
     try {
         const danhMuc = await DanhMuc.findByPk(req.params.id, {
@@ -45,20 +39,16 @@ exports.layDanhMucTheoId = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/danh-muc
-//  Admin only – Tạo danh mục mới
-// ============================================================
+
 exports.taoDanhMuc = async (req, res, next) => {
     try {
         const { ten_danh_muc } = req.body;
 
-        // [1] Kiểm tra đầu vào
+     
         if (!ten_danh_muc || !ten_danh_muc.trim()) {
             return next(new AppError("Vui lòng nhập tên danh mục!", 400));
         }
 
-        // [2] Kiểm tra trùng tên
         const daTonTai = await DanhMuc.findOne({
             where: { ten_danh_muc: ten_danh_muc.trim() },
         });
@@ -67,7 +57,7 @@ exports.taoDanhMuc = async (req, res, next) => {
             return next(new AppError(`Danh mục "${ten_danh_muc.trim()}" đã tồn tại!`, 409));
         }
 
-        // [3] Tạo mới
+    
         const danhMucMoi = await DanhMuc.create({
             ten_danh_muc: ten_danh_muc.trim(),
         });
