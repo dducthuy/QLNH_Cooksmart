@@ -8,7 +8,9 @@ const {
   NguyenLieu,
   KhuyenMai,
   Combo,
-  ChiTietCombo
+  ChiTietCombo,
+  HoaDon,
+  ChiTietHoaDon
 } = require('./models');
 
 async function seedDatabase() {
@@ -151,6 +153,53 @@ async function seedDatabase() {
       });
     }
     console.log("✔️ Thêm nguyên liệu hoàn tất!");
+
+    // 8. Thêm Hóa Đơn & Chi tiết hóa đơn
+    console.log("⏳ Đang thêm hóa đơn mẫu...");
+    const phucVu = await NguoiDung.findOne({ where: { vai_tro: 'PhucVu' } });
+    const ban1 = await BanAn.findOne({ where: { so_ban: 'B01' } });
+    const ban2 = await BanAn.findOne({ where: { so_ban: 'B02' } });
+
+    if (phucVu && ban1 && ban2 && createdMonAn.length >= 4) {
+      // Hóa đơn 1 (Đang phục vụ) ở Bàn 1
+      const hd1 = await HoaDon.create({
+        id_ban: ban1.id,
+        id_nhan_vien: phucVu.id,
+        tong_tien: 95000,
+        phuong_thuc_tt: 'TienMat',
+        trang_thai_hd: 'DangPhucVu',
+        thoi_gian_tao: new Date(),
+        da_chot_kho: false
+      });
+
+      // Thêm chi tiết hóa đơn 1 (1 Phở bò - 50k, 1 Cơm tấm - 45k)
+      await ChiTietHoaDon.bulkCreate([
+        { id_hoa_don: hd1.id, id_mon_an: createdMonAn[0].id, so_luong: 1, trang_thai_mon: 'DaXong' },
+        { id_hoa_don: hd1.id, id_mon_an: createdMonAn[1].id, so_luong: 1, trang_thai_mon: 'DangNau' }
+      ]);
+      await ban1.update({ trang_thai_ban: 'DangPhucVu' });
+
+      // Hóa đơn 2 (Chờ xử lý / Vừa order xong) ở Bàn 2
+      const hd2 = await HoaDon.create({
+        id_ban: ban2.id,
+        id_nhan_vien: phucVu.id,
+        tong_tien: 40000,
+        phuong_thuc_tt: 'ChuyenKhoan',
+        trang_thai_hd: 'ChoXuLy',
+        thoi_gian_tao: new Date(),
+        da_chot_kho: false
+      });
+
+      // Thêm chi tiết cho hóa đơn 2 (2 Nước chanh - 20k x2)
+      await ChiTietHoaDon.bulkCreate([
+        { id_hoa_don: hd2.id, id_mon_an: createdMonAn[3].id, so_luong: 2, trang_thai_mon: 'DangCho' }
+      ]);
+      await ban2.update({ trang_thai_ban: 'DangPhucVu' });
+      
+      console.log("✔️ Thêm hóa đơn mẫu hoàn tất!");
+    } else {
+      console.log("⚠️ Thiếu dữ liệu (Bàn/Nhân viên/Món ăn) để tạo hóa đơn mẫu.");
+    }
 
     console.log("🚀 Quá trình thêm dữ liệu (Seeding) đã thành công rực rỡ!");
     process.exit(0);

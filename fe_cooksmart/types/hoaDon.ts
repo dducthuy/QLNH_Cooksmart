@@ -21,6 +21,10 @@ export interface HoaDon {
   trang_thai_hd: TrangThaiHoaDon;
   thoi_gian_tao: string;
   da_chot_kho: boolean;
+  BanAn?: { so_ban: string } | null;
+  NguoiDung?: { ho_ten: string } | null;
+  KhuyenMai?: { ten_km: string; loai_km?: string; gia_tri_km?: number } | null;
+  ChiTietHoaDons?: any[];
 }
 
 export interface ChiTietHoaDonInput {
@@ -67,4 +71,24 @@ export interface ThongBaoMonMoiSocket {
     ghi_chu?: string | null;
   }>;
   thoi_gian: string;
+}
+
+export interface LayTatCaHoaDonResponse {
+  status: "success";
+  results: number;
+  data: HoaDon[];
+}
+
+export interface LayChiTietHoaDonResponse {
+  status: "success";
+  data: HoaDon;
+}
+
+export interface CapNhatTrangThaiHoaDonBody {
+  trang_thai_hd: TrangThaiHoaDon;
+}
+
+export interface CapNhatTrangThaiHoaDonResponse {
+  status: "success";
+  message: string;
 }

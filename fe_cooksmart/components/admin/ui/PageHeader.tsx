@@ -16,7 +16,7 @@ interface AdminPageHeaderProps {
     onRefresh: () => void;
     isLoading: boolean;
     /** Add button */
-    onAdd: () => void;
+    onAdd?: () => void;
     addLabel?: string;
     /** Thêm các node tuỳ chỉnh vào khu vực phải (optional) */
     extraActions?: React.ReactNode;
@@ -78,13 +78,15 @@ export function AdminPageHeader({
                 {extraActions}
 
                 {/* Add */}
-                <button
-                    onClick={onAdd}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#d9a01e] to-[#f8b500] text-white font-black rounded-xl shadow-md hover:shadow-[#d9a01e]/30 active:scale-95 transition-all uppercase tracking-widest text-xs"
-                >
-                    <Plus size={16} />
-                    {addLabel}
-                </button>
+                {onAdd && (
+                    <button
+                        onClick={onAdd}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#d9a01e] to-[#f8b500] text-white font-black rounded-xl shadow-md hover:shadow-[#d9a01e]/30 active:scale-95 transition-all uppercase tracking-widest text-xs"
+                    >
+                        <Plus size={16} />
+                        {addLabel}
+                    </button>
+                )}
             </div>
         </div>
     );

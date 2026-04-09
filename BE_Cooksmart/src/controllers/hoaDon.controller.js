@@ -1,6 +1,6 @@
-const { HoaDon, ChiTietHoaDon, BanAn, MonAn, KhuyenMai, Combo, sequelize } = require("../models");
+const { HoaDon, ChiTietHoaDon, BanAn, MonAn, KhuyenMai, Combo, NguoiDung, sequelize } = require("../models");
 const AppError = require("../utils/AppError");
-
+const { Op } = require("sequelize");
 // API tạo hóa đơn cho Nhân viên / Admin
 exports.taoHoaDon = async (req, res, next) => {
     const t = await sequelize.transaction();
@@ -173,6 +173,111 @@ exports.taoHoaDonKhachHang = async (req, res, next) => {
         res.status(201).json({ status: "success", message: "Khách gọi món thành công. Vui lòng chờ bếp chuẩn bị!", data: { hoaDon: hoaDonMoi, chiTiet: chiTietCanTao } });
     } catch (error) {
         await t.rollback();
+        next(error);
+    }
+};
+
+// API lấy tất cả danh sách hóa đơn (có thể lọc theo trạng thái, từ ngày đến ngày)
+exports.layTatCaHoaDon = async (req, res, next) => {
+    try {
+        const { trang_thai_hd, tu_ngay, den_ngay, search, id_ban } = req.query;
+        let whereClause = {};
+
+        if (trang_thai_hd) {
+            whereClause.trang_thai_hd = trang_thai_hd;
+        }
+
+        if (id_ban) {
+            whereClause.id_ban = id_ban;
+        }
+
+        if (tu_ngay || den_ngay) {
+            whereClause.thoi_gian_tao = {};
+            if (tu_ngay) whereClause.thoi_gian_tao[Op.gte] = new Date(tu_ngay);
+            if (den_ngay) {
+                // cộng 1 ngày để bao trọn ngày kết thúc nếu truyền ngày ở định dạng YYYY-MM-DD
+                const toDate = new Date(den_ngay);
+                toDate.setHours(23, 59, 59, 999);
+                whereClause.thoi_gian_tao[Op.lte] = toDate;
+            }
+        }
+
+        const danhsachHoaDon = await HoaDon.findAll({
+            where: whereClause,
+            include: [
+                { model: BanAn, attributes: ["so_ban"] },
+                { model: NguoiDung, attributes: ["ho_ten"] },
+                { model: KhuyenMai, attributes: ["ten_km", "loai_km", "gia_tri_km"] }
+            ],
+            order: [["thoi_gian_tao", "DESC"]],
+        });
+
+        res.status(200).json({ status: "success", results: danhsachHoaDon.length, data: danhsachHoaDon });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// API lấy chi tiết một hóa đơn theo ID
+exports.layChiTietHoaDon = async (req, res, next) => {
+    try {
+        const hoaDonId = req.params.id;
+
+        const hoanDon = await HoaDon.findByPk(hoaDonId, {
+            include: [
+                { model: BanAn, attributes: ["so_ban"] },
+                { model: NguoiDung, attributes: ["ho_ten"] },
+                { model: KhuyenMai, attributes: ["ten_km"] },
+                {
+                    model: ChiTietHoaDon,
+                    include: [
+                        { model: MonAn, attributes: ["ten_mon", "gia_tien", ["hinh_anh_mon", "hinh_anh"]] },
+                        { model: Combo, attributes: ["ten_combo", "gia_tien", ["hinh_anh_combo", "hinh_anh"]] }
+                    ]
+                }
+            ]
+        });
+
+        if (!hoanDon) {
+            return next(new AppError("Hóa đơn không tồn tại", 404));
+        }
+
+        res.status(200).json({ status: "success", data: hoanDon });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// API cập nhật trạng thái hóa đơn
+exports.capNhatTrangThaiHoaDon = async (req, res, next) => {
+    try {
+        const { trang_thai_hd } = req.body;
+        const hoaDonId = req.params.id;
+
+        const hoadon = await HoaDon.findByPk(hoaDonId);
+        if (!hoadon) {
+            return next(new AppError("Hóa đơn không tồn tại", 404));
+        }
+
+        if (!["ChoXuLy", "DangPhucVu", "DaThanhToan", "DaHuy"].includes(trang_thai_hd)) {
+            return next(new AppError("Trạng thái hóa đơn không hợp lệ", 400));
+        }
+
+        // Logic bổ sung: Nếu đang từ DangPhucVu -> DaThanhToan, ta phải giải phóng bàn.
+        if (trang_thai_hd === "DaThanhToan" || trang_thai_hd === "DaHuy") {
+             if (hoadon.id_ban) {
+                 const banAn = await BanAn.findByPk(hoadon.id_ban);
+                 if (banAn) {
+                     // Lấy tất cả hóa đơn đang phục vụ của bàn. Nếu bàn chỉ có 1 hd này thì mới giải phóng
+                     await banAn.update({ trang_thai_ban: "Trong" });
+                 }
+             }
+        }
+
+        await hoadon.update({ trang_thai_hd });
+
+        res.status(200).json({ status: "success", message: "Cập nhật trạng thái hóa đơn thành công" });
+    } catch (error) {
         next(error);
     }
 };
