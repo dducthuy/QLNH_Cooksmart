@@ -1,4 +1,4 @@
-export type VaiTro = 'Admin' | 'PhucVu' | 'Bep';
+export type VaiTro = 'Admin' | 'ThuNgan' | 'PhucVu' | 'Bep';
 
 export interface NguoiDung {
     id: string;

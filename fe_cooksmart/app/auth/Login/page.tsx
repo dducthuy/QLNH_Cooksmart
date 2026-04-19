@@ -41,6 +41,10 @@ export default function LoginPage() {
 
                 if (payload?.vai_tro === 'Admin') {
                     router.push('/admin');
+                } else if (payload?.vai_tro === 'PhucVu' || payload?.vai_tro === 'ThuNgan') {
+                    router.push('/Nhanvien');
+                } else if (payload?.vai_tro === 'Bep') {
+                    router.push('/Bep');
                 } else {
                     router.push('/');
                 }

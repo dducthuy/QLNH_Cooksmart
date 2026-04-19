@@ -59,22 +59,22 @@ exports.dangNhap = async (req, res, next) => {
     }
 };
 
-exports.    taoTaiKhoan = async (req, res, next) => {
+exports.taoTaiKhoan = async (req, res, next) => {
     try {
         const { ten_dang_nhap, mat_khau, ho_ten, vai_tro } = req.body;
 
-        // 1. Kiểm tra dữ liệu đầu vào
+
         if (!ten_dang_nhap || !mat_khau || !vai_tro) {
             return next(new AppError("Vui lòng cung cấp đầy đủ tên đăng nhập, mật khẩu và vai trò!", 400));
         }
 
-        // Kiểm tra vai trò hợp lệ
+
         const dsVaiTro = ["Admin", "PhucVu", "Bep"];
         if (!dsVaiTro.includes(vai_tro)) {
             return next(new AppError("Vai trò không hợp lệ!", 400));
         }
 
-        // 2. Kiểm tra xem người dùng đã tồn tại chưa
+
         const nguoiDungTonTai = await NguoiDung.findOne({
             where: { ten_dang_nhap },
         });

@@ -11,7 +11,8 @@ import {
     TrendingUp,
     Settings,
     ChefHat,
-    LayoutGrid
+    LayoutGrid,
+    ClipboardList,
 } from 'lucide-react';
 import { useState } from 'react';
 import { removeToken } from '@/lib/token';
@@ -28,6 +29,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: 'Bàn Ăn', path: '/admin/tables', icon: <LayoutGrid size={20} /> },
         { name: 'Khuyến Mãi', path: '/admin/promotions', icon: <TrendingUp size={20} /> },
         { name: 'Đơn Hàng', path: '/admin/orders', icon: <CalendarCheck size={20} /> },
+        { name: 'Ca Làm Việc', path: '/admin/shifts', icon: <ClipboardList size={20} /> },
+        { name: 'Bán Hàng (POS)', path: '/Nhanvien', icon: <LayoutGrid size={20} /> },
         { name: 'Cấu Hình', path: '/admin/settings', icon: <Settings size={20} /> },
     ];
 

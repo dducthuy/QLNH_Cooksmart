@@ -114,6 +114,18 @@ exports.capNhatBanAn = async (req, res, next) => {
             trang_thai_ban: trang_thai_ban !== undefined ? trang_thai_ban   : banAn.trang_thai_ban,
         });
 
+        // --- BẮT ĐẦU CODE MỚI THÊM ---
+        if (trang_thai_ban !== undefined) {
+             const io = req.app.get("socketio");
+             if (io) {
+                 io.emit("cap_nhat_trang_thai_ban", {
+                     id_ban: banAn.id,
+                     trang_thai_ban: banAn.trang_thai_ban
+                 });
+             }
+        }
+        // --- KẾT THÚC CODE MỚI THÊM ---
+
         res.status(200).json({
             status: "success",
             message: "Cập nhật bàn ăn thành công!",

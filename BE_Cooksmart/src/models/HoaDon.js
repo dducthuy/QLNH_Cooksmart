@@ -17,6 +17,10 @@ const HoaDon = sequelize.define(
             type: DataTypes.UUID,
             allowNull: true,
         },
+        id_ket_ca: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
         tong_tien: {
             type: DataTypes.DECIMAL(15, 2),
             defaultValue: 0,

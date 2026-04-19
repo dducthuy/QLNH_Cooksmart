@@ -6,12 +6,15 @@ import { useEffect, useState } from 'react';
 
 interface AdminGuardProps {
     children: React.ReactNode;
+    allowedRoles?: ('Admin' | 'ThuNgan' | 'PhucVu' | 'Bep')[];
 }
 
-export default function AdminGuard({ children }: AdminGuardProps) {
-    const { isAuthenticated, isQuanLy } = useAuth();
+export default function AdminGuard({ children, allowedRoles = ['Admin'] }: AdminGuardProps) {
+    const { isAuthenticated, vaiTro, isAdmin } = useAuth();
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
+
+    const isAllowed = !allowedRoles || (vaiTro && allowedRoles.includes(vaiTro)) || isAdmin;
 
     useEffect(() => {
         setIsMounted(true);
@@ -21,13 +24,13 @@ export default function AdminGuard({ children }: AdminGuardProps) {
         if (isMounted) {
             if (!isAuthenticated) {
                 router.push('/auth/login');
-            } else if (!isQuanLy) {
+            } else if (!isAllowed) {
                 router.push('/');
             }
         }
-    }, [isAuthenticated, isQuanLy, router, isMounted]);
+    }, [isAuthenticated, isAllowed, router, isMounted]);
 
-    if (!isMounted || !isAuthenticated || !isQuanLy) {
+    if (!isMounted || !isAuthenticated || !isAllowed) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#0a0202]">
                 <div className="flex flex-col items-center gap-4">

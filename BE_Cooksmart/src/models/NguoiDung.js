@@ -24,7 +24,7 @@ const NguoiDung = sequelize.define(
             allowNull: true,
         },
         vai_tro: {
-            type: DataTypes.ENUM("Admin", "PhucVu", "Bep"),
+            type: DataTypes.ENUM("Admin", "ThuNgan", "PhucVu", "Bep"),
             allowNull: false,
         },
         trang_thai: {

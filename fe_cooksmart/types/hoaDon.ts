@@ -17,6 +17,7 @@ export interface HoaDon {
   id_ban: string | null;
   id_nhan_vien: string | null;
   tong_tien: number;
+  giam_gia: number;
   phuong_thuc_tt: PhuongThucThanhToan;
   trang_thai_hd: TrangThaiHoaDon;
   thoi_gian_tao: string;
@@ -86,6 +87,7 @@ export interface LayChiTietHoaDonResponse {
 
 export interface CapNhatTrangThaiHoaDonBody {
   trang_thai_hd: TrangThaiHoaDon;
+  phuong_thuc_tt?: PhuongThucThanhToan;
 }
 
 export interface CapNhatTrangThaiHoaDonResponse {

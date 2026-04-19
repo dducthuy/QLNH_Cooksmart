@@ -5,10 +5,13 @@ import { LayoutGrid, CalendarCheck, Loader2 } from 'lucide-react';
 import TableOrderModal from './TableOrderModal';
 import { banAnService } from '@/services/banAn.service';
 import { BanAn, TrangThaiBan } from '@/types/banAn';
+import { usePos } from '@/context/PosContext';
+import { io } from 'socket.io-client';
 
 export default function TableGrid() {
+    const { selectedTable, setSelectedTable } = usePos();
     const [filter, setFilter] = useState('all');
-    const [selectedTable, setSelectedTable] = useState<any>(null);
+    const [modalTable, setModalTable] = useState<any>(null);
     const [tables, setTables] = useState<BanAn[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -25,6 +28,24 @@ export default function TableGrid() {
         };
         fetchTables();
     }, []);
+
+    // --- BẮT ĐẦU MỚI THÊM: SOCKET REALTIME CẬP NHẬT TRẠNG THÁI BÀN ---
+    useEffect(() => {
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+
+        socket.on('cap_nhat_trang_thai_ban', (payload: { id_ban: string, trang_thai_ban: TrangThaiBan }) => {
+            setTables(prev => prev.map(t => 
+                t.id === payload.id_ban 
+                    ? { ...t, trang_thai_ban: payload.trang_thai_ban } 
+                    : t
+            ));
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
+    // --- KẾT THÚC MỚI THÊM ---
 
     const getStatusText = (status: TrangThaiBan) => {
         switch (status) {
@@ -80,16 +101,29 @@ export default function TableGrid() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 w-full h-fit">
-                        {tables.filter(t => filter === 'all' || getStatusText(t.trang_thai_ban) === filter).map(table => (
-                            <button 
-                                key={table.id} 
-                                onClick={() => setSelectedTable({...table, status: getStatusText(table.trang_thai_ban)})}
-                                className={`flex flex-col items-center justify-center gap-1.5 aspect-square border rounded-2xl transition-all active:scale-95 group ${getStatusStyle(table.trang_thai_ban)}`}
-                            >
-                                <span className="text-xl font-black">{table.so_ban.replace(/bàn\s/i, '')}</span>
-                                <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-white/50">{getStatusText(table.trang_thai_ban)}</span>
-                            </button>
-                        ))}
+                        {tables.filter(t => filter === 'all' || getStatusText(t.trang_thai_ban) === filter).map(table => {
+                            const isSelected = selectedTable?.id === table.id;
+                            return (
+                                <button 
+                                    key={table.id} 
+                                    onClick={() => setSelectedTable({ id: table.id, so_ban: table.so_ban })}
+                                    onDoubleClick={() => setModalTable({...table, status: getStatusText(table.trang_thai_ban)})}
+                                    className={`flex flex-col items-center justify-center gap-1.5 aspect-square border rounded-2xl transition-all active:scale-95 group relative ${
+                                        isSelected 
+                                        ? 'bg-[#d9a01e] text-white border-[#d9a01e] shadow-lg shadow-[#d9a01e]/40 ring-4 ring-[#d9a01e]/20' 
+                                        : getStatusStyle(table.trang_thai_ban)
+                                    }`}
+                                >
+                                    {isSelected && (
+                                        <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse"></div>
+                                    )}
+                                    <span className="text-[22px] font-black z-10">{table.so_ban.replace(/bàn\s/i, '')}</span>
+                                    <span className={`text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full z-10 ${isSelected ? 'bg-white/30 text-white' : 'bg-white/50 text-inherit'}`}>
+                                        {getStatusText(table.trang_thai_ban)}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -103,9 +137,9 @@ export default function TableGrid() {
 
             {/* Modal Thông tin bàn */}
             <TableOrderModal 
-                isOpen={!!selectedTable}
-                onClose={() => setSelectedTable(null)}
-                table={selectedTable}
+                isOpen={!!modalTable}
+                onClose={() => setModalTable(null)}
+                table={modalTable}
             />
         </div>
     );

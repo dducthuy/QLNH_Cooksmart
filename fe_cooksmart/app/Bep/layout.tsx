@@ -4,7 +4,7 @@ import AdminGuard from '@/components/admin/layout/Guard';
 
 export default function KitchenLayout({ children }: { children: React.ReactNode }) {
     return (
-        <AdminGuard>
+        <AdminGuard allowedRoles={['Admin', 'Bep']}>
             {/* Toàn bộ không gian bếp nên là Dark Mode cho đỡ chói mắt / dễ nhìn từ xa */}
             <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#111827] text-gray-100">
                 <main className="flex-1 overflow-hidden flex">

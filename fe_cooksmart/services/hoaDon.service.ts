@@ -1,10 +1,14 @@
+
+
 import http from '@/lib/http';
 import {
     HoaDon,
     LayTatCaHoaDonResponse,
     LayChiTietHoaDonResponse,
     CapNhatTrangThaiHoaDonBody,
-    CapNhatTrangThaiHoaDonResponse
+    CapNhatTrangThaiHoaDonResponse,
+    TaoHoaDonNoiBoBody,
+    TaoHoaDonNoiBoResponse
 } from '@/types/hoaDon';
 
 export const hoaDonService = {
@@ -18,7 +22,16 @@ export const hoaDonService = {
         return response.data.data;
     },
 
+    async createNoiBo(data: TaoHoaDonNoiBoBody): Promise<TaoHoaDonNoiBoResponse> {
+        const response = await http.post<TaoHoaDonNoiBoResponse>('/hoa-don/noi-bo', data);
+        return response.data;
+    },
+
     async updateStatus(id: string, data: CapNhatTrangThaiHoaDonBody): Promise<void> {
         await http.patch<CapNhatTrangThaiHoaDonResponse>(`/hoa-don/noi-bo/${id}/trang-thai`, data);
+    },
+
+    async updateItemStatus(id: string, trang_thai_mon: "DangCho" | "DangNau" | "DaXong"): Promise<void> {
+        await http.patch(`/hoa-don/noi-bo/chi-tiet/${id}/trang-thai`, { trang_thai_mon });
     }
 };

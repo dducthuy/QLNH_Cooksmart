@@ -18,9 +18,11 @@ export function useAuth() {
         vaiTro,
 
         // Kiểm tra quyền cụ thể
-        isQuanLy: vaiTro === 'Admin',
-        isPhucVu: vaiTro === 'PhucVu',
-        isBep: vaiTro === 'Bep',
+        isAdmin: payload?.vai_tro === 'Admin',
+        isQuanLy: payload?.vai_tro === 'Admin',
+        isThuNgan: payload?.vai_tro === 'ThuNgan',
+        isPhucVu: payload?.vai_tro === 'PhucVu',
+        isBep: payload?.vai_tro === 'Bep',
 
         // Kiểm tra nhiều quyền cùng lúc
         hasRole: (roles: VaiTro[]) => !!vaiTro && roles.includes(vaiTro),

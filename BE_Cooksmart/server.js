@@ -24,8 +24,21 @@ app.set("socketio", io);
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
 
+    // --- BẮT ĐẦU CODE MỚI THÊM ---
+    // Khi Client ở Bếp kết nối, gọi event này để join vào room
+    socket.on("join_room_bep", (room_name = "khu_vuc_bep") => {
+        socket.join(room_name);
+        console.log(`👨‍🍳 Màn hình Bếp (${socket.id}) đã tham gia room: ${room_name}`);
+    });
+    // --- KẾT THÚC CODE MỚI THÊM ---
+
     socket.on("khach_dat_mon", (data) => {
         console.log("🔔 Đơn mới từ bàn:", data.id_ban);
+        // --- BẮT ĐẦU CODE MỚI THÊM ---
+        io.to("khu_vuc_bep").emit("thong_bao_moi", data);
+        // --- KẾT THÚC CODE MỚI THÊM ---
+
+        // Code cũ giữ nguyên (bạn có thể xóa dòng io.emit này nếu chỉ muốn gửi riêng cho Bếp)
         io.emit("thong_bao_moi", data);
     });
 

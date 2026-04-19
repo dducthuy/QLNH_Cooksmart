@@ -20,6 +20,7 @@ import {
     ToggleRight,
     Eye,
     EyeOff,
+    LayoutGrid,
 } from 'lucide-react';
 import { nguoiDungService } from '@/services/nguoiDung.service';
 import { NguoiDung, VaiTro } from '@/types/nguoiDung';
@@ -34,6 +35,13 @@ const VAI_TRO_CONFIG: Record<VaiTro, { label: string; color: string; bg: string;
         bg: 'bg-purple-50',
         border: 'border-purple-200',
         icon: <ShieldCheck size={13} />,
+    },
+    ThuNgan: {
+        label: 'Thu Ngân',
+        color: 'text-emerald-700',
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200',
+        icon: <LayoutGrid size={13} />,
     },
     PhucVu: {
         label: 'Phục Vụ',
@@ -53,6 +61,7 @@ const VAI_TRO_CONFIG: Record<VaiTro, { label: string; color: string; bg: string;
 
 const VAI_TRO_OPTIONS: { value: VaiTro; label: string }[] = [
     { value: 'Admin', label: 'Quản Trị Viên' },
+    { value: 'ThuNgan', label: 'Nhân Viên Thu Ngân' },
     { value: 'PhucVu', label: 'Nhân Viên Phục Vụ' },
     { value: 'Bep', label: 'Nhân Viên Bếp' },
 ];
@@ -64,6 +73,7 @@ function Avatar({ nguoiDung }: { nguoiDung: NguoiDung }) {
     const initials = (nguoiDung.ho_ten || nguoiDung.ten_dang_nhap).charAt(0).toUpperCase();
     const colorMap: Record<VaiTro, string> = {
         Admin: 'from-purple-500 to-purple-700',
+        ThuNgan: 'from-emerald-500 to-emerald-700',
         PhucVu: 'from-blue-500 to-blue-700',
         Bep: 'from-amber-500 to-amber-700',
     };
@@ -427,6 +437,7 @@ export default function UserManagementPage() {
     const counts = {
         total: users.length,
         admin: users.filter((u) => u.vai_tro === 'Admin').length,
+        thuNgan: users.filter((u) => u.vai_tro === 'ThuNgan').length,
         phucVu: users.filter((u) => u.vai_tro === 'PhucVu').length,
         bep: users.filter((u) => u.vai_tro === 'Bep').length,
         active: users.filter((u) => u.trang_thai).length,
@@ -477,6 +488,7 @@ export default function UserManagementPage() {
                 {[
                     { label: 'Tổng', value: counts.total, color: 'text-gray-800', bg: 'bg-white', border: 'border-gray-100' },
                     { label: 'Quản Trị', value: counts.admin, color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-100' },
+                    { label: 'Thu Ngân', value: counts.thuNgan, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' },
                     { label: 'Phục Vụ', value: counts.phucVu, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-100' },
                     { label: 'Bếp', value: counts.bep, color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100' },
                     { label: 'Hoạt Động', value: counts.active, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' },
@@ -491,10 +503,10 @@ export default function UserManagementPage() {
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-2">
                 {/* Role filter */}
-                {(['all', 'Admin', 'PhucVu', 'Bep'] as const).map((r) => (
+                {(['all', 'Admin', 'ThuNgan', 'PhucVu', 'Bep'] as const).map((r) => (
                     <button key={r} onClick={() => setFilterRole(r as any)}
                         className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${filterRole === r ? 'bg-[#d9a01e] text-white shadow-md shadow-[#d9a01e]/30' : 'bg-white text-gray-500 border border-gray-200 hover:border-[#d9a01e]/30 hover:text-[#d9a01e]'}`}>
-                        {r === 'all' ? 'Tất cả' : r === 'Admin' ? 'Quản Trị' : r === 'PhucVu' ? 'Phục Vụ' : 'Bếp'}
+                        {r === 'all' ? 'Tất cả' : r === 'Admin' ? 'Quản Trị' : r === 'ThuNgan' ? 'Thu Ngân' : r === 'PhucVu' ? 'Phục Vụ' : 'Bếp'}
                     </button>
                 ))}
                 <div className="w-px bg-gray-200 mx-1" />
