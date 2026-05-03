@@ -7,10 +7,10 @@ const { baoVe, phanQuyen } = require("../middlewares/baoVe");
 router.post("/noi-bo", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.taoHoaDon);
 
 
-router.get("/noi-bo", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.layTatCaHoaDon);
+router.get("/noi-bo", baoVe, phanQuyen("Admin", "PhucVu", "Bep"), hoaDonController.layTatCaHoaDon);
 
 
-router.get("/noi-bo/:id", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.layChiTietHoaDon);
+router.get("/noi-bo/:id", baoVe, phanQuyen("Admin", "PhucVu", "Bep"), hoaDonController.layChiTietHoaDon);
 
 
 router.patch("/noi-bo/:id/trang-thai", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.capNhatTrangThaiHoaDon);

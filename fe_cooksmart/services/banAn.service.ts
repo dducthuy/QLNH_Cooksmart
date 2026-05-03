@@ -33,4 +33,9 @@ export const banAnService = {
     async delete(id: string): Promise<void> {
         await http.delete(`/ban-an/${id}`);
     },
+
+    async getQRCode(id: string): Promise<{ id_ban: string; so_ban: string; vi_tri: string | null; order_url: string; qr_code: string }> {
+        const response = await http.get<{ status: string; data: any }>(`/ban-an/${id}/qr`);
+        return response.data.data;
+    },
 };

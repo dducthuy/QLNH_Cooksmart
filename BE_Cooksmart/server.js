@@ -24,8 +24,7 @@ app.set("socketio", io);
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
 
-    // --- BẮT ĐẦU CODE MỚI THÊM ---
-    // Khi Client ở Bếp kết nối, gọi event này để join vào room
+
     socket.on("join_room_bep", (room_name = "khu_vuc_bep") => {
         socket.join(room_name);
         console.log(`👨‍🍳 Màn hình Bếp (${socket.id}) đã tham gia room: ${room_name}`);
@@ -57,13 +56,13 @@ io.on("connection", (socket) => {
     });
 });
 
-// 4. Mở cổng Server
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🚀 Server CookSmart đang chạy tại: http://localhost:${PORT}`);
 });
 
-// 5. Đồng bộ tất cả bảng vào Database
+
 db.sequelize
     .sync() // Bỏ { alter: true } để tránh tạo nhiều index khóa ngoại bị trùng lặp
     .then(() => {

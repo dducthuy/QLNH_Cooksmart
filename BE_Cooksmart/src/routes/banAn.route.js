@@ -7,6 +7,9 @@ const { baoVe, phanQuyen } = require("../middlewares/baoVe");
 router.get("/", banAnController.layTatCaBanAn);
 
 
+router.get("/:id/qr", banAnController.sinhMaQR);
+
+
 router.get("/:id", banAnController.layBanAnTheoId);
 
 

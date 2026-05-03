@@ -1,15 +1,12 @@
 const { DinhMucMonAn, MonAn, NguyenLieu } = require("../models/index");
 const AppError = require("../utils/AppError");
 
-// ============================================================
-//  GET /api/dinh-muc-mon-an/mon-an/:id_mon_an
-//  Admin – Lấy tất cả định mức nguyên liệu của một món ăn
-// ============================================================
+
 exports.layDinhMucTheoMonAn = async (req, res, next) => {
     try {
         const { id_mon_an } = req.params;
 
-        // Kiểm tra món ăn tồn tại
+
         const monAn = await MonAn.findByPk(id_mon_an, { attributes: ["id", "ten_mon"] });
         if (!monAn) {
             return next(new AppError(`Không tìm thấy món ăn với ID: ${id_mon_an}`, 404));
@@ -37,16 +34,13 @@ exports.layDinhMucTheoMonAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/dinh-muc-mon-an
-//  Admin – Lấy tất cả định mức (toàn bộ)
-// ============================================================
+
 exports.layTatCaDinhMuc = async (req, res, next) => {
     try {
         const danhSach = await DinhMucMonAn.findAll({
             attributes: ["id", "luong_tieu_hao"],
             include: [
-                { model: MonAn,      attributes: ["id", "ten_mon"] },
+                { model: MonAn, attributes: ["id", "ten_mon"] },
                 { model: NguyenLieu, attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh"] },
             ],
         });

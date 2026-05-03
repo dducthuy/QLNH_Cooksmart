@@ -17,11 +17,12 @@ const NguyenLieu = sequelize.define(
             type: DataTypes.STRING(20),
             allowNull: true,
         },
-        so_luong_kho_tong: {
-            type: DataTypes.DECIMAL(10, 2),
-            defaultValue: 0,
+        loai_quan_ly: {
+            type: DataTypes.ENUM("TU_DONG", "THU_CONG"),
+            defaultValue: "THU_CONG",
+            allowNull: false,
         },
-        so_luong_tai_bep: {
+        so_luong_ton: {
             type: DataTypes.DECIMAL(10, 2),
             defaultValue: 0,
         },

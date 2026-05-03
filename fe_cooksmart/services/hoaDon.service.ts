@@ -8,7 +8,9 @@ import {
     CapNhatTrangThaiHoaDonBody,
     CapNhatTrangThaiHoaDonResponse,
     TaoHoaDonNoiBoBody,
-    TaoHoaDonNoiBoResponse
+    TaoHoaDonNoiBoResponse,
+    TaoHoaDonKhachHangBody,
+    TaoHoaDonKhachHangResponse
 } from '@/types/hoaDon';
 
 export const hoaDonService = {
@@ -33,5 +35,10 @@ export const hoaDonService = {
 
     async updateItemStatus(id: string, trang_thai_mon: "DangCho" | "DangNau" | "DaXong"): Promise<void> {
         await http.patch(`/hoa-don/noi-bo/chi-tiet/${id}/trang-thai`, { trang_thai_mon });
+    },
+
+    async createKhachHang(data: TaoHoaDonKhachHangBody): Promise<TaoHoaDonKhachHangResponse> {
+        const response = await http.post<TaoHoaDonKhachHangResponse>('/hoa-don/khach-hang', data);
+        return response.data;
     }
 };

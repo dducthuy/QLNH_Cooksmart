@@ -16,6 +16,9 @@ import {
     RefreshCw,
     MapPin,
     QrCode,
+    Download,
+    Link2,
+    Copy,
 } from 'lucide-react';
 import { banAnService } from '@/services/banAn.service';
 import { BanAn, TrangThaiBan } from '@/types/banAn';
@@ -54,19 +57,108 @@ const TRANG_THAI_OPTIONS: { value: TrangThaiBan; label: string }[] = [
 ];
 
 // ─────────────────────────────────────────────
+//  QR Modal
+// ─────────────────────────────────────────────
+function QRModal({ ban, onClose }: { ban: BanAn; onClose: () => void }) {
+    const [qrData, setQrData] = useState<{ qr_code: string; order_url: string } | null>(null);
+    const [isLoadingQR, setIsLoadingQR] = useState(true);
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        banAnService.getQRCode(ban.id)
+            .then(data => setQrData(data))
+            .catch(() => setQrData(null))
+            .finally(() => setIsLoadingQR(false));
+    }, [ban.id]);
+
+    const handleDownload = () => {
+        if (!qrData) return;
+        const link = document.createElement('a');
+        link.href = qrData.qr_code;
+        link.download = `QR_Ban_${ban.so_ban.replace(/\s/g, '_')}.png`;
+        link.click();
+    };
+
+    const handleCopyLink = async () => {
+        if (!qrData) return;
+        await navigator.clipboard.writeText(qrData.order_url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-5 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Mã QR Gọi Món</p>
+                            <h2 className="text-xl font-black mt-0.5">Bàn {ban.so_ban}</h2>
+                            {ban.vi_tri && <p className="text-xs text-gray-400 mt-0.5">{ban.vi_tri}</p>}
+                        </div>
+                        <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+                </div>
+                <div className="flex items-center justify-center p-8 bg-gray-50">
+                    {isLoadingQR ? (
+                        <div className="w-48 h-48 flex items-center justify-center">
+                            <Loader2 size={32} className="animate-spin text-amber-400" />
+                        </div>
+                    ) : qrData ? (
+                        <div className="bg-white p-3 rounded-2xl shadow-lg border border-gray-100">
+                            <img src={qrData.qr_code} alt={`QR Bàn ${ban.so_ban}`} className="w-48 h-48 object-contain" />
+                        </div>
+                    ) : (
+                        <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 text-gray-400">
+                            <QrCode size={40} className="text-gray-300" />
+                            <p className="text-xs font-bold">Không thể tải QR</p>
+                        </div>
+                    )}
+                </div>
+                {qrData && (
+                    <div className="mx-5 mb-4 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2">
+                        <Link2 size={13} className="text-gray-400 shrink-0" />
+                        <p className="text-[11px] text-gray-500 font-mono truncate flex-1">{qrData.order_url}</p>
+                    </div>
+                )}
+                <div className="flex gap-2 px-5 pb-5">
+                    <button onClick={handleCopyLink} disabled={!qrData}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs border border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100 transition-all disabled:opacity-40 uppercase tracking-wider"
+                    >
+                        {copied ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        {copied ? 'Đã copy!' : 'Copy Link'}
+                    </button>
+                    <button onClick={handleDownload} disabled={!qrData}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs bg-gradient-to-r from-[#d9a01e] to-[#f8b500] text-white hover:shadow-lg active:scale-95 transition-all disabled:opacity-40 uppercase tracking-wider"
+                    >
+                        <Download size={14} /> Tải Ảnh QR
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 //  TableCard
 // ─────────────────────────────────────────────
 function TableCard({
     ban,
     onEdit,
     onDelete,
+    onShowQR,
 }: {
     ban: BanAn;
     onEdit: (ban: BanAn) => void;
     onDelete: (ban: BanAn) => void;
+    onShowQR: (ban: BanAn) => void;
 }) {
     const cfg = STATUS_CONFIG[ban.trang_thai_ban];
     const canDelete = ban.trang_thai_ban !== 'DangPhucVu';
+
 
     return (
         <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#d9a01e]/30 transition-all duration-300 overflow-hidden">
@@ -117,6 +209,13 @@ function TableCard({
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-gray-500 bg-gray-50 hover:bg-[#d9a01e]/10 hover:text-[#d9a01e] rounded-xl border border-gray-100 hover:border-[#d9a01e]/30 transition-all"
                     >
                         <Edit2 size={13} /> Sửa
+                    </button>
+                    <button
+                        onClick={() => onShowQR(ban)}
+                        className="flex items-center justify-center gap-1 py-2 px-3 text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-xl border border-violet-100 hover:border-violet-200 transition-all"
+                        title="Xem mã QR"
+                    >
+                        <QrCode size={13} />
                     </button>
                     <button
                         onClick={() => onDelete(ban)}
@@ -325,6 +424,7 @@ export default function TableManagementPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTable, setEditingTable] = useState<BanAn | null>(null);
     const [deletingTable, setDeletingTable] = useState<BanAn | null>(null);
+    const [qrTable, setQrTable] = useState<BanAn | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -353,6 +453,7 @@ export default function TableManagementPage() {
     const handleAdd = () => { setEditingTable(null); setIsFormOpen(true); };
     const handleEdit = (ban: BanAn) => { setEditingTable(ban); setIsFormOpen(true); };
     const handleDeleteClick = (ban: BanAn) => setDeletingTable(ban);
+    const handleShowQR = (ban: BanAn) => setQrTable(ban);
 
     const handleFormSubmit = async (data: any) => {
         try {
@@ -522,7 +623,7 @@ export default function TableManagementPage() {
                         {/* Grid 5 cột cố định */}
                         <div className="grid grid-cols-5 gap-4">
                             {filtered.map((ban) => (
-                                <TableCard key={ban.id} ban={ban} onEdit={handleEdit} onDelete={handleDeleteClick} />
+                                <TableCard key={ban.id} ban={ban} onEdit={handleEdit} onDelete={handleDeleteClick} onShowQR={handleShowQR} />
                             ))}
                         </div>
                     </div>
@@ -553,6 +654,9 @@ export default function TableManagementPage() {
                     </div>
                 </div>
             )}
+
+            {/* ── QR Modal ── */}
+            {qrTable && <QRModal ban={qrTable} onClose={() => setQrTable(null)} />}
         </div>
     );
 }

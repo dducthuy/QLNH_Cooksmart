@@ -18,7 +18,7 @@ const NhatKyKho = sequelize.define(
             allowNull: true,
         },
         loai_giao_dich: {
-            type: DataTypes.ENUM("NHAP_KHO_TONG", "XUAT_SANG_BEP", "HUY_HANG"),
+            type: DataTypes.ENUM("NHAP_HANG", "HUY_HANG", "KIEM_KE_CHOT_LO", "XUAT_BAN"),
             allowNull: false,
         },
         so_luong: {

@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import TableGrid from '@/components/pos/TableGrid';
 import MenuSection from '@/components/pos/MenuSection';
 import OrderCart from '@/components/pos/OrderCart';
+import PendingOrdersPanel from '@/components/pos/PendingOrdersPanel';
 import { usePos } from '@/context/PosContext';
 import ShiftModal from '@/components/pos/ShiftModal';
-import { LayoutGrid, UtensilsCrossed, ShoppingBag, Lock, Loader2 } from 'lucide-react';
+import { LayoutGrid, UtensilsCrossed, ShoppingBag, Lock, Loader2, ClipboardList } from 'lucide-react';
 import { ketCaService } from '@/services/ketCa.service';
 import { ThongTinCaHienTaiResponse } from '@/types/ketCa';
 import { useEffect } from 'react';
@@ -14,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function PosPage() {
     // State để điều khiển tab trên giao diện Mobile (Điện thoại/ iPad xoay dọc)
-    const [mobileTab, setMobileTab] = useState<'tables' | 'menu' | 'cart'>('menu');
+    const [mobileTab, setMobileTab] = useState<'tables' | 'menu' | 'cart' | 'pending'>('menu');
 
     const { isThuNgan, isAdmin, vaiTro } = useAuth();
     const { setCurrentShift, currentShift, hasActiveShift } = usePos();
@@ -119,17 +120,20 @@ export default function PosPage() {
             </div>
 
             {/* Cột 3: Giỏ Hàng & Thanh Toán */}
-            <div className={`w-full lg:w-[30%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col z-10 h-full ${
+            <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col z-10 h-full ${
                 mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
             }`}>
                 <OrderCart />
             </div>
 
+            {/* Đơn Chờ Duyệt (QR Orders) - Now a floating drawer */}
+            <PendingOrdersPanel />
+
             {/* Thanh điều hướng Bottom Navigation Bar DÀNH RIÊNG CHO MOBILE */}
             <div className="lg:hidden shrink-0 flex items-center justify-around bg-white border-t border-gray-100 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] p-2 pb-safe z-50">
                 <button 
                     onClick={() => setMobileTab('tables')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-24 transition-all ${
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${
                         mobileTab === 'tables' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                     }`}
                 >
@@ -138,7 +142,7 @@ export default function PosPage() {
                 </button>
                 <button 
                     onClick={() => setMobileTab('menu')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-24 transition-all ${
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${
                         mobileTab === 'menu' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                     }`}
                 >
@@ -147,16 +151,21 @@ export default function PosPage() {
                 </button>
                 <button 
                     onClick={() => setMobileTab('cart')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-24 transition-all relative ${
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${
                         mobileTab === 'cart' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                     }`}
                 >
                     <ShoppingBag size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Giỏ Hàng</span>
-                    {/* Fake Badge (Số lượng món) */}
-                    <span className="absolute top-1 right-4 bg-red-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center border border-white shadow-sm">
-                        3
-                    </span>
+                </button>
+                <button 
+                    onClick={() => setMobileTab('pending')} 
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${
+                        mobileTab === 'pending' ? 'text-violet-600 bg-violet-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                >
+                    <ClipboardList size={22} className="mb-1.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">QR Orders</span>
                 </button>
             </div>
 

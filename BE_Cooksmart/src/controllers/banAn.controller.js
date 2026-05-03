@@ -1,5 +1,6 @@
 const { BanAn, HoaDon } = require("../models/index");
 const AppError = require("../utils/AppError");
+const QRCode = require("qrcode");
 
 const TRANG_THAI_HOP_LE = ["Trong", "DangPhucVu", "DatTruoc"];
 
@@ -136,6 +137,44 @@ exports.capNhatBanAn = async (req, res, next) => {
     }
 };
 
+
+// ============================================================
+//  GET /api/ban-an/:id/qr
+//  Public – Sinh mã QR dạng base64 cho một bàn
+// ============================================================
+exports.sinhMaQR = async (req, res, next) => {
+    try {
+        const banAn = await BanAn.findByPk(req.params.id);
+        if (!banAn) {
+            return next(new AppError(`Không tìm thấy bàn ăn với ID: ${req.params.id}`, 404));
+        }
+
+        // URL mà khách hàng sẽ được điều hướng đến khi quét QR
+        const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:3000";
+        const orderUrl = `${baseUrl}/order?tableId=${banAn.id}`;
+
+        // Sinh ảnh QR dạng Data URL (base64 PNG)
+        const qrDataUrl = await QRCode.toDataURL(orderUrl, {
+            errorCorrectionLevel: "H",
+            margin: 2,
+            width: 400,
+            color: { dark: "#1a1a2e", light: "#ffffff" },
+        });
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                id_ban: banAn.id,
+                so_ban: banAn.so_ban,
+                vi_tri: banAn.vi_tri,
+                order_url: orderUrl,
+                qr_code: qrDataUrl,
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
 
 exports.xoaBanAn = async (req, res, next) => {
     try {

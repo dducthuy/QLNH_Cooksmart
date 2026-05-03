@@ -2,11 +2,7 @@ const { KetCa, HoaDon, ChiTieuCa, NguoiDung, sequelize } = require("../models");
 const AppError = require("../utils/AppError");
 const { Op } = require("sequelize");
 
-// =======================================================
-// [1] LỊCH SỬ CA – GET /api/admin/shifts
-//     Hỗ trợ lọc theo: status, userId, khoảng thời gian
-//     Hỗ trợ phân trang: limit, offset
-// =======================================================
+
 exports.layLichSuCa = async (req, res, next) => {
     try {
         const {

@@ -8,7 +8,7 @@ const AppError = require("../utils/AppError");
 exports.layTatCaNguyenLieu = async (req, res, next) => {
     try {
         const danhSach = await NguyenLieu.findAll({
-            attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh", "so_luong_kho_tong", "so_luong_tai_bep", "gia_nhap_gan_nhat"],
+            attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh", "loai_quan_ly", "so_luong_ton", "gia_nhap_gan_nhat"],
             order: [["ten_nguyen_lieu", "ASC"]],
         });
 
@@ -45,7 +45,7 @@ exports.layNguyenLieuTheoId = async (req, res, next) => {
 // ============================================================
 exports.taoNguyenLieu = async (req, res, next) => {
     try {
-        const { ten_nguyen_lieu, don_vi_tinh, so_luong_kho_tong, so_luong_tai_bep, gia_nhap_gan_nhat } = req.body;
+        const { ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
 
         if (!ten_nguyen_lieu || !ten_nguyen_lieu.trim()) {
             return next(new AppError("Vui lòng nhập tên nguyên liệu!", 400));
@@ -60,8 +60,8 @@ exports.taoNguyenLieu = async (req, res, next) => {
         const nguyenLieuMoi = await NguyenLieu.create({
             ten_nguyen_lieu:    ten_nguyen_lieu.trim(),
             don_vi_tinh:        don_vi_tinh        || null,
-            so_luong_kho_tong:  so_luong_kho_tong  !== undefined ? Number(so_luong_kho_tong)  : 0,
-            so_luong_tai_bep:   so_luong_tai_bep   !== undefined ? Number(so_luong_tai_bep)   : 0,
+            loai_quan_ly:       loai_quan_ly       || "THU_CONG",
+            so_luong_ton:       so_luong_ton       !== undefined ? Number(so_luong_ton)       : 0,
             gia_nhap_gan_nhat:  gia_nhap_gan_nhat  !== undefined ? Number(gia_nhap_gan_nhat)  : 0,
         });
 
@@ -86,7 +86,7 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy nguyên liệu với ID: ${req.params.id}`, 404));
         }
 
-        const { ten_nguyen_lieu, don_vi_tinh, so_luong_kho_tong, so_luong_tai_bep, gia_nhap_gan_nhat } = req.body;
+        const { ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
 
         // Kiểm tra trùng tên với nguyên liệu KHÁC
         if (ten_nguyen_lieu && ten_nguyen_lieu.trim() !== nguyenLieu.ten_nguyen_lieu) {
@@ -99,8 +99,8 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
         await nguyenLieu.update({
             ten_nguyen_lieu:   ten_nguyen_lieu   !== undefined ? ten_nguyen_lieu.trim()           : nguyenLieu.ten_nguyen_lieu,
             don_vi_tinh:       don_vi_tinh       !== undefined ? don_vi_tinh                      : nguyenLieu.don_vi_tinh,
-            so_luong_kho_tong: so_luong_kho_tong !== undefined ? Number(so_luong_kho_tong)        : nguyenLieu.so_luong_kho_tong,
-            so_luong_tai_bep:  so_luong_tai_bep  !== undefined ? Number(so_luong_tai_bep)         : nguyenLieu.so_luong_tai_bep,
+            loai_quan_ly:      loai_quan_ly      !== undefined ? loai_quan_ly                     : nguyenLieu.loai_quan_ly,
+            so_luong_ton:      so_luong_ton      !== undefined ? Number(so_luong_ton)             : nguyenLieu.so_luong_ton,
             gia_nhap_gan_nhat: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat)        : nguyenLieu.gia_nhap_gan_nhat,
         });
 

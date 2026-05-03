@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const roboto = Roboto({
-  weight: ['100', '300', '400', '500', '700', '900'],
+const inter = Inter({
   subsets: ['latin', 'vietnamese'],
   display: 'swap',
-  variable: "--font-roboto",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={`${roboto.variable} font-sans antialiased bg-[#0a0202]`}>
+      <body className={`${inter.variable} font-sans antialiased bg-[#0a0202]`}>
         {children}
       </body>
     </html>

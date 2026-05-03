@@ -80,8 +80,8 @@ export default function MenuSection() {
                         key={cat}
                         onClick={() => setActiveTab(cat)}
                         className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === cat
-                                ? 'bg-gray-800 text-white shadow-md'
-                                : 'bg-white text-gray-500 border border-gray-100 hover:border-[#d9a01e]/30 hover:text-[#d9a01e]'
+                            ? 'bg-gray-800 text-white shadow-md'
+                            : 'bg-white text-gray-500 border border-gray-100 hover:border-[#d9a01e]/30 hover:text-[#d9a01e]'
                             }`}
                     >
                         {cat}

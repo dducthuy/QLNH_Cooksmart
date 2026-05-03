@@ -1,7 +1,7 @@
 const { HoaDon, ChiTietHoaDon, BanAn, MonAn, KhuyenMai, Combo, NguoiDung, KetCa, sequelize } = require("../models");
 const AppError = require("../utils/AppError");
 const { Op } = require("sequelize");
-// API tạo hóa đơn cho Nhân viên / Admin
+
 exports.taoHoaDon = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
@@ -57,7 +57,7 @@ exports.taoHoaDon = async (req, res, next) => {
         if (hoadonActive) {
             // Cập nhật hóa đơn cũ
             const tongTienMoi = Number(hoadonActive.tong_tien) + tong_tien_them;
-            
+
             // Re-calculate discount if needed (simplified for now, just adding to total)
             await hoadonActive.update({ tong_tien: tongTienMoi }, { transaction: t });
             hoaDonKetQua = hoadonActive;
@@ -76,14 +76,14 @@ exports.taoHoaDon = async (req, res, next) => {
             }
 
             hoaDonKetQua = await HoaDon.create(
-                { 
-                    id_ban: id_ban || null, 
-                    id_nhan_vien, 
-                    tong_tien: tong_tien_them, 
+                {
+                    id_ban: id_ban || null,
+                    id_nhan_vien,
+                    tong_tien: tong_tien_them,
                     id_khuyen_mai: id_khuyen_mai || null,
                     giam_gia,
-                    phuong_thuc_tt: phuong_thuc_tt || "TienMat", 
-                    trang_thai_hd: "DangPhucVu" 
+                    phuong_thuc_tt: phuong_thuc_tt || "TienMat",
+                    trang_thai_hd: "DangPhucVu"
                 },
                 { transaction: t }
             );
@@ -99,14 +99,14 @@ exports.taoHoaDon = async (req, res, next) => {
             so_ban_hien_thi = banAn.so_ban;
             if (banAn.trang_thai_ban !== "DangPhucVu") {
                 await banAn.update({ trang_thai_ban: "DangPhucVu" }, { transaction: t });
-                // --- BẮT ĐẦU CODE MỚI THÊM ---
+
                 if (req.app.get("socketio")) {
                     req.app.get("socketio").emit("cap_nhat_trang_thai_ban", {
                         id_ban: banAn.id,
                         trang_thai_ban: "DangPhucVu"
                     });
                 }
-                // --- KẾT THÚC CODE MỚI THÊM ---
+
             }
         }
 
@@ -124,9 +124,7 @@ exports.taoHoaDon = async (req, res, next) => {
                 danh_sach_mon: dsMonAnSocket,
                 thoi_gian: new Date()
             });
-            // --- KẾT THÚC CODE MỚI THÊM ---
 
-            // Code cũ giữ nguyên
             io.emit("thong_bao_moi", {
                 id_hoa_don: hoaDonKetQua.id,
                 so_ban: so_ban_hien_thi,
@@ -136,10 +134,10 @@ exports.taoHoaDon = async (req, res, next) => {
             });
         }
 
-        res.status(201).json({ 
-            status: "success", 
-            message: hoadonActive ? "Đã thêm món vào hóa đơn hiện tại" : "Nhân viên tạo hóa đơn mới thành công", 
-            data: { hoaDon: hoaDonKetQua, chiTiet: chiTietCanTao } 
+        res.status(201).json({
+            status: "success",
+            message: hoadonActive ? "Đã thêm món vào hóa đơn hiện tại" : "Nhân viên tạo hóa đơn mới thành công",
+            data: { hoaDon: hoaDonKetQua, chiTiet: chiTietCanTao }
         });
     } catch (error) {
         if (t) await t.rollback();
@@ -217,47 +215,53 @@ exports.taoHoaDonKhachHang = async (req, res, next) => {
 
         // Khách gọi thêm món thì đổi bàn về Đang Phục Vụ hoặc Chờ
         if (banAn.trang_thai_ban === "Trong") {
-             await banAn.update({ trang_thai_ban: "DangPhucVu" }, { transaction: t });
-             // --- BẮT ĐẦU CODE MỚI THÊM ---
-             if (req.app.get("socketio")) {
-                 req.app.get("socketio").emit("cap_nhat_trang_thai_ban", {
-                     id_ban: banAn.id,
-                     trang_thai_ban: "DangPhucVu"
-                 });
-             }
-             // --- KẾT THÚC CODE MỚI THÊM ---
+            await banAn.update({ trang_thai_ban: "DangPhucVu" }, { transaction: t });
+            // --- BẮT ĐẦU CODE MỚI THÊM ---
+            if (req.app.get("socketio")) {
+                req.app.get("socketio").emit("cap_nhat_trang_thai_ban", {
+                    id_ban: banAn.id,
+                    trang_thai_ban: "DangPhucVu"
+                });
+            }
+
         }
 
         await t.commit();
 
-        // 🔔 GỬI THÔNG BÁO CHO BẾP NGAY LẬP TỨC 🔔
+        // 🔔 GỬI THÔNG BÁO
         const io = req.app.get("socketio");
         if (io) {
-            // --- BẮT ĐẦU CODE MỚI THÊM ---
-            // Bắn dữ liệu đơn QR thẳng vào Room 'khu_vuc_bep'
-            io.to("khu_vuc_bep").emit("thong_bao_moi", {
-                id_hoa_don: hoaDonKetQua.id,
-                so_ban: banAn.so_ban,
-                nguoi_dat: "Khách hàng (QR)",
-                danh_sach_mon: dsMonAnSocket,
-                thoi_gian: new Date()
-            });
-            // --- KẾT THÚC CODE MỚI THÊM ---
-
-            // Code cũ giữ nguyên
-            io.emit("thong_bao_moi", {
-                id_hoa_don: hoaDonKetQua.id,
-                so_ban: banAn.so_ban,
-                nguoi_dat: "Khách hàng (QR)",
-                danh_sach_mon: dsMonAnSocket,
-                thoi_gian: new Date()
-            });
+            if (hoadonActive && hoadonActive.trang_thai_hd === "DangPhucVu") {
+                // Đơn đã duyệt (bàn đang phục vụ), gửi món gọi thêm thẳng xuống bếp
+                io.to("khu_vuc_bep").emit("thong_bao_moi", {
+                    id_hoa_don: hoaDonKetQua.id,
+                    so_ban: banAn.so_ban,
+                    nguoi_dat: "Khách hàng (QR - Gọi thêm)",
+                    danh_sach_mon: dsMonAnSocket,
+                    thoi_gian: new Date()
+                });
+                io.emit("thong_bao_moi", {
+                    id_hoa_don: hoaDonKetQua.id,
+                    so_ban: banAn.so_ban,
+                    nguoi_dat: "Khách hàng (QR - Gọi thêm)",
+                    danh_sach_mon: dsMonAnSocket,
+                    thoi_gian: new Date()
+                });
+            } else {
+                // Đơn mới hoặc đang chờ xử lý, báo cho POS duyệt
+                io.emit("don_qr_cho_duyet", {
+                    id_hoa_don: hoaDonKetQua.id,
+                    so_ban: banAn.so_ban,
+                    danh_sach_mon: dsMonAnSocket,
+                    thoi_gian: new Date()
+                });
+            }
         }
 
-        res.status(201).json({ 
-            status: "success", 
-            message: hoadonActive ? "Đã thêm món vào đơn hiện tại" : "Khách gọi món thành công. Vui lòng chờ bếp chuẩn bị!", 
-            data: { hoaDon: hoaDonKetQua, chiTiet: chiTietCanTao } 
+        res.status(201).json({
+            status: "success",
+            message: hoadonActive ? "Đã thêm món vào đơn hiện tại" : "Khách gọi món thành công. Vui lòng chờ bếp chuẩn bị!",
+            data: { hoaDon: hoaDonKetQua, chiTiet: chiTietCanTao }
         });
     } catch (error) {
         if (t) await t.rollback();
@@ -353,49 +357,89 @@ exports.capNhatTrangThaiHoaDon = async (req, res, next) => {
 
         // Logic bổ sung: Nếu đang từ DangPhucVu -> DaThanhToan, ta phải giải phóng bàn.
         if (trang_thai_hd === "DaThanhToan" || trang_thai_hd === "DaHuy") {
-             if (hoadon.id_ban) {
-                 const banAn = await BanAn.findByPk(hoadon.id_ban);
-                 if (banAn) {
-                     // Lấy tất cả hóa đơn đang phục vụ của bàn. Nếu bàn chỉ có 1 hd này thì mới giải phóng
-                     await banAn.update({ trang_thai_ban: "Trong" });
+            if (hoadon.id_ban) {
+                const banAn = await BanAn.findByPk(hoadon.id_ban);
+                if (banAn) {
+                    // Lấy tất cả hóa đơn đang phục vụ của bàn. Nếu bàn chỉ có 1 hd này thì mới giải phóng
+                    await banAn.update({ trang_thai_ban: "Trong" });
 
-                     // --- BẮT ĐẦU CODE MỚI THÊM ---
-                     const io = req.app.get("socketio");
-                     if (io) {
-                         io.emit("cap_nhat_trang_thai_ban", {
-                             id_ban: banAn.id,
-                             trang_thai_ban: "Trong"
-                         });
-                     }
-                     // --- KẾT THÚC CODE MỚI THÊM ---
-                 }
-             }
+                    // --- BẮT ĐẦU CODE MỚI THÊM ---
+                    const io = req.app.get("socketio");
+                    if (io) {
+                        io.emit("cap_nhat_trang_thai_ban", {
+                            id_ban: banAn.id,
+                            trang_thai_ban: "Trong"
+                        });
+                    }
+                    // --- KẾT THÚC CODE MỚI THÊM ---
+                }
+            }
         }
 
-         let id_ket_ca_to_update = hoadon.id_ket_ca;
-         if (trang_thai_hd === "DaThanhToan") {
-             // Tìm ca đang chạy (Ưu tiên ca của chính mình, sau đó đến ca chung bất kỳ đang mở)
-             let activeShift = await KetCa.findOne({ where: { id_nhan_vien: req.nguoiDung.id, trang_thai_ca: "DangChay" } });
-             
-             if (!activeShift) {
-                 activeShift = await KetCa.findOne({ 
-                     where: { trang_thai_ca: "DangChay" },
-                     order: [['thoi_gian_bat_dau', 'DESC']]
-                 });
-             }
+        let id_ket_ca_to_update = hoadon.id_ket_ca;
+        if (trang_thai_hd === "DaThanhToan") {
+            // Tìm ca đang chạy (Ưu tiên ca của chính mình, sau đó đến ca chung bất kỳ đang mở)
+            let activeShift = await KetCa.findOne({ where: { id_nhan_vien: req.nguoiDung.id, trang_thai_ca: "DangChay" } });
 
-             if (activeShift) {
-                 id_ket_ca_to_update = activeShift.id;
-             }
-         }
+            if (!activeShift) {
+                activeShift = await KetCa.findOne({
+                    where: { trang_thai_ca: "DangChay" },
+                    order: [['thoi_gian_bat_dau', 'DESC']]
+                });
+            }
 
-        await hoadon.update({ 
+            if (activeShift) {
+                id_ket_ca_to_update = activeShift.id;
+            }
+        }
+
+        const oldTrangThai = hoadon.trang_thai_hd; // Lưu lại trạng thái cũ trước khi update
+
+        await hoadon.update({
             trang_thai_hd,
             phuong_thuc_tt: phuong_thuc_tt || hoadon.phuong_thuc_tt,
             id_ket_ca: id_ket_ca_to_update
         });
 
+        // 🔔 Nếu nhân viên DUYỆT đơn QR (ChoXuLy → DangPhucVu) → bắn xuống bếp ngay
+        if (trang_thai_hd === "DangPhucVu" && oldTrangThai === "ChoXuLy") {
+            const io = req.app.get("socketio");
+            if (io) {
+                // Lấy chi tiết món để gửi xuống bếp
+                const { ChiTietHoaDon: CTHD, MonAn, Combo, BanAn: BanAnModel } = require("../models");
+                const chiTietList = await CTHD.findAll({
+                    where: { id_hoa_don: hoadon.id },
+                    include: [
+                        { model: MonAn, attributes: ["ten_mon"] },
+                        { model: Combo, attributes: ["ten_combo"] }
+                    ]
+                });
+                const banAn = hoadon.id_ban ? await BanAnModel.findByPk(hoadon.id_ban) : null;
+                const dsMonAnSocket = chiTietList.map(ct => ({
+                    ten_mon: ct.MonAn?.ten_mon || ct.Combo?.ten_combo || "Món ăn",
+                    so_luong: ct.so_luong,
+                    ghi_chu: ct.ghi_chu
+                }));
+
+                io.to("khu_vuc_bep").emit("thong_bao_moi", {
+                    id_hoa_don: hoadon.id,
+                    so_ban: banAn?.so_ban || "Không xác định",
+                    nguoi_dat: "Khách hàng (QR - Đã duyệt)",
+                    danh_sach_mon: dsMonAnSocket,
+                    thoi_gian: new Date()
+                });
+                io.emit("thong_bao_moi", {
+                    id_hoa_don: hoadon.id,
+                    so_ban: banAn?.so_ban || "Không xác định",
+                    nguoi_dat: "Khách hàng (QR - Đã duyệt)",
+                    danh_sach_mon: dsMonAnSocket,
+                    thoi_gian: new Date()
+                });
+            }
+        }
+
         res.status(200).json({ status: "success", message: "Cập nhật trạng thái hóa đơn thành công" });
+
     } catch (error) {
         next(error);
     }

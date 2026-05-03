@@ -15,14 +15,14 @@ const {
 
 async function seedDatabase() {
   try {
-    // Kết nối CSDL
+
     await sequelize.authenticate();
     console.log("✅ Kết nối cơ sở dữ liệu thành công! Đang tiến hành thêm dữ liệu (Seeding)...");
 
-    // Tự động tạo các bảng nếu chưa có
+
     await sequelize.sync({ alter: true });
 
-    // 1. Thêm Người Dùng (Admin, Bếp, Phục Vụ)
+
     console.log("⏳ Đang thêm người dùng...");
     const usersData = [
       { ten_dang_nhap: 'admin', mat_khau: '123456', ho_ten: 'Quản trị viên', vai_tro: 'Admin', trang_thai: true },
@@ -77,21 +77,21 @@ async function seedDatabase() {
     // 4. Thêm Khuyến Mãi
     console.log("⏳ Đang thêm khuyến mãi mẫu...");
     const khuyenMaiData = [
-      { 
-        ten_km: 'Khai trương giảm giá 10%', 
-        loai_km: 'PhanTram', 
-        gia_tri_km: 10, 
-        gia_tri_dh_toi_thieu: 200000, 
-        ngay_bat_dau: new Date(), 
-        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) 
+      {
+        ten_km: 'Khai trương giảm giá 10%',
+        loai_km: 'PhanTram',
+        gia_tri_km: 10,
+        gia_tri_dh_toi_thieu: 200000,
+        ngay_bat_dau: new Date(),
+        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       },
-      { 
-        ten_km: 'Giảm 50k cho đơn từ 1 triệu', 
-        loai_km: 'SoTien', 
-        gia_tri_km: 50000, 
-        gia_tri_dh_toi_thieu: 1000000, 
-        ngay_bat_dau: new Date(), 
-        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) 
+      {
+        ten_km: 'Giảm 50k cho đơn từ 1 triệu',
+        loai_km: 'SoTien',
+        gia_tri_km: 50000,
+        gia_tri_dh_toi_thieu: 1000000,
+        ngay_bat_dau: new Date(),
+        ngay_ket_thuc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       }
     ];
     for (const km of khuyenMaiData) {
@@ -141,10 +141,10 @@ async function seedDatabase() {
     // 7. Thêm Nguyên Liệu
     console.log("⏳ Đang thêm nguyên liệu...");
     const nguyenLieuData = [
-      { ten_nguyen_lieu: 'Thịt bò phi lê', don_vi_tinh: 'kg', so_luong_kho_tong: 15.5, so_luong_tai_bep: 5.0, gia_nhap_gan_nhat: 250000 },
-      { ten_nguyen_lieu: 'Gạo ST25', don_vi_tinh: 'kg', so_luong_kho_tong: 50.0, so_luong_tai_bep: 10.0, gia_nhap_gan_nhat: 35000 },
-      { ten_nguyen_lieu: 'Tôm sú', don_vi_tinh: 'kg', so_luong_kho_tong: 20.0, so_luong_tai_bep: 3.0, gia_nhap_gan_nhat: 300000 },
-      { ten_nguyen_lieu: 'Chanh', don_vi_tinh: 'kg', so_luong_kho_tong: 5.0, so_luong_tai_bep: 1.0, gia_nhap_gan_nhat: 25000 },
+      { ten_nguyen_lieu: 'Thịt bò phi lê', don_vi_tinh: 'kg', loai_quan_ly: 'THU_CONG', so_luong_ton: 20.5, gia_nhap_gan_nhat: 250000 },
+      { ten_nguyen_lieu: 'Gạo ST25', don_vi_tinh: 'kg', loai_quan_ly: 'THU_CONG', so_luong_ton: 60.0, gia_nhap_gan_nhat: 35000 },
+      { ten_nguyen_lieu: 'Tôm sú', don_vi_tinh: 'kg', loai_quan_ly: 'THU_CONG', so_luong_ton: 23.0, gia_nhap_gan_nhat: 300000 },
+      { ten_nguyen_lieu: 'Chanh', don_vi_tinh: 'kg', loai_quan_ly: 'THU_CONG', so_luong_ton: 6.0, gia_nhap_gan_nhat: 25000 },
     ];
     for (const nl of nguyenLieuData) {
       await NguyenLieu.findOrCreate({
@@ -195,7 +195,7 @@ async function seedDatabase() {
         { id_hoa_don: hd2.id, id_mon_an: createdMonAn[3].id, so_luong: 2, trang_thai_mon: 'DangCho' }
       ]);
       await ban2.update({ trang_thai_ban: 'DangPhucVu' });
-      
+
       console.log("✔️ Thêm hóa đơn mẫu hoàn tất!");
     } else {
       console.log("⚠️ Thiếu dữ liệu (Bàn/Nhân viên/Món ăn) để tạo hóa đơn mẫu.");
