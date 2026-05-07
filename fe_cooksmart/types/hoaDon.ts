@@ -8,8 +8,12 @@ export interface ChiTietHoaDon {
   id: string;
   id_hoa_don: string | null;
   id_mon_an: string | null;
+  id_combo: string | null;
   so_luong: number;
   trang_thai_mon: TrangThaiMon;
+  ghi_chu?: string | null;
+  MonAn?: { ten_mon: string; gia_tien: number; hinh_anh?: string } | null;
+  Combo?: { ten_combo: string; gia_tien: number; hinh_anh?: string } | null;
 }
 
 export interface HoaDon {
@@ -25,11 +29,12 @@ export interface HoaDon {
   BanAn?: { so_ban: string } | null;
   NguoiDung?: { ho_ten: string } | null;
   KhuyenMai?: { ten_km: string; loai_km?: string; gia_tri_km?: number } | null;
-  ChiTietHoaDons?: any[];
+  ChiTietHoaDons?: ChiTietHoaDon[];
 }
 
 export interface ChiTietHoaDonInput {
-  id_mon_an: string;
+  id_mon_an?: string;
+  id_combo?: string;
   so_luong: number;
   ghi_chu?: string | null;
 }

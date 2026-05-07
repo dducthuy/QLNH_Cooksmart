@@ -9,37 +9,42 @@ import {
 } from 'lucide-react';
 import { banAnService } from '@/services/banAn.service';
 import { hoaDonService } from '@/services/hoaDon.service';
+import { comboService } from '@/services/combo.service';
 import { BanAn } from '@/types/banAn';
 import { useSocket } from '@/context/SocketContext';
+import ComboDetailModal from '@/components/ui/ComboDetailModal';
+import { Combo } from '@/types/combo';
 
 
 async function fetchMonAn(): Promise<any[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/mon-an`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/mon-an`, { cache: 'no-store' });
     const json = await res.json();
     return json.data ?? [];
 }
 
 async function fetchDanhMuc(): Promise<any[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/danh-muc`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/danh-muc`, { cache: 'no-store' });
     const json = await res.json();
     return json.data ?? [];
 }
 
 async function fetchTableInfo(id: string): Promise<any> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ban-an/${id}`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ban-an/${id}`, { cache: 'no-store' });
     const json = await res.json();
     return json.data ?? null;
 }
 
 async function fetchActiveInvoice(id_ban: string): Promise<any> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/hoa-don/khach-hang/ban/${id_ban}`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/hoa-don/khach-hang/ban/${id_ban}`, { cache: 'no-store' });
     const json = await res.json();
     return json.data ?? null;
 }
 
 
 interface CartItem {
-    id: string;
+    id: string; // Internal unique ID for cart
+    id_mon_an?: string;
+    id_combo?: string;
     ten_mon: string;
     gia_tien: number;
     hinh_anh_mon: string | null;
@@ -56,7 +61,10 @@ function CartItemRow({ item, onUpdate, onRemove }: { item: CartItem; onUpdate: (
         <div className="flex items-center gap-3 py-3 border-b border-amber-100/60 last:border-0">
             <div className="flex-1 min-w-0">
                 <p className="font-bold text-gray-800 text-sm truncate">{item.ten_mon}</p>
-                <p className="text-amber-600 font-black text-sm">{vnd(item.gia_tien)}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-amber-600 font-black text-sm">{vnd(item.gia_tien)}</p>
+                    {item.id_combo && <span className="text-[8px] bg-amber-100 text-[#d9a01e] px-1.5 py-0.5 rounded uppercase font-black">Combo</span>}
+                </div>
             </div>
             <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-1 py-0.5 shrink-0">
                 <button onClick={() => onUpdate(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-amber-50 hover:text-amber-600 transition-colors">
@@ -75,30 +83,39 @@ function CartItemRow({ item, onUpdate, onRemove }: { item: CartItem; onUpdate: (
 }
 
 // ─── Dish Card ──────────────────────────────────────────────────────────────
-function DishCard({ mon, qty, onAdd, onRemove }: { mon: any; qty: number; onAdd: () => void; onRemove: () => void }) {
+function DishCard({ mon, qty, onAdd, onRemove, isCombo = false, onViewDetail }: { mon: any; qty: number; onAdd: () => void; onRemove: () => void; isCombo?: boolean, onViewDetail?: () => void }) {
     const imgBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    const imgSrc = mon.hinh_anh_mon
-        ? (mon.hinh_anh_mon.startsWith('http') ? mon.hinh_anh_mon : `${imgBase}${mon.hinh_anh_mon}`)
+    const hinh_anh = isCombo ? mon.hinh_anh_combo : mon.hinh_anh_mon;
+    const imgSrc = hinh_anh
+        ? (hinh_anh.startsWith('http') ? hinh_anh : `${imgBase}${hinh_anh}`)
         : null;
 
     return (
-        <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all duration-200 ${qty > 0 ? 'border-amber-300 shadow-amber-100' : 'border-gray-100'}`}>
+        <div 
+            onClick={() => isCombo && onViewDetail && onViewDetail()}
+            className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all duration-200 ${qty > 0 ? 'border-amber-300 shadow-amber-100' : 'border-gray-100'} ${isCombo ? 'cursor-pointer hover:border-amber-400' : ''}`}
+        >
             {/* Image */}
-            <div className="relative h-32 bg-gradient-to-br from-amber-50 to-orange-50">
+            <div className={`relative h-32 ${isCombo ? 'bg-gradient-to-br from-blue-50 to-indigo-50' : 'bg-gradient-to-br from-amber-50 to-orange-50'}`}>
                 {imgSrc ? (
-                    <img src={imgSrc} alt={mon.ten_mon} className="w-full h-full object-cover" />
+                    <img src={imgSrc} alt={mon.ten_mon || mon.ten_combo} className="w-full h-full object-cover" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                        <UtensilsCrossed size={32} className="text-amber-200" />
+                        <UtensilsCrossed size={32} className={isCombo ? 'text-blue-200' : 'text-amber-200'} />
                     </div>
                 )}
-                {!mon.con_hang && (
+                {isCombo && (
+                    <div className="absolute top-2 left-2">
+                        <span className="bg-[#d9a01e] text-white text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-lg shadow-sm">Combo</span>
+                    </div>
+                )}
+                {!isCombo && !mon.con_hang && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <span className="bg-black/70 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Hết hàng</span>
                     </div>
                 )}
                 {qty > 0 && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 text-white text-xs font-black rounded-full flex items-center justify-center shadow-md">
+                    <div className={`absolute top-2 right-2 w-6 h-6 ${isCombo ? 'bg-blue-500' : 'bg-amber-500'} text-white text-xs font-black rounded-full flex items-center justify-center shadow-md`}>
                         {qty}
                     </div>
                 )}
@@ -106,22 +123,31 @@ function DishCard({ mon, qty, onAdd, onRemove }: { mon: any; qty: number; onAdd:
 
             {/* Info */}
             <div className="p-3">
-                <h3 className="font-bold text-gray-800 text-sm leading-tight mb-1 line-clamp-2">{mon.ten_mon}</h3>
-                {mon.mo_ta_ai && <p className="text-[11px] text-gray-400 line-clamp-1 mb-2">{mon.mo_ta_ai}</p>}
+                <h3 className="font-bold text-gray-800 text-sm leading-tight mb-1 line-clamp-2">{mon.ten_mon || mon.ten_combo}</h3>
+                {(mon.mo_ta_ai || mon.mo_ta) && <p className="text-[11px] text-gray-400 line-clamp-1 mb-2">{mon.mo_ta_ai || mon.mo_ta}</p>}
                 <div className="flex items-center justify-between gap-2 mt-2">
-                    <span className="font-black text-amber-600 text-sm">{vnd(mon.gia_tien)}</span>
-                    {mon.con_hang && (
+                    <span className={`font-black text-sm text-amber-600`}>{vnd(mon.gia_tien)}</span>
+                    {(isCombo || mon.con_hang) && (
                         qty === 0 ? (
-                            <button onClick={onAdd} className="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-amber-200 active:scale-90 transition-all">
+                            <button 
+                                onClick={(e) => {
+                                    if (isCombo) e.stopPropagation();
+                                    onAdd();
+                                }} 
+                                className={`w-8 h-8 bg-amber-500 hover:bg-amber-600 shadow-amber-200 text-white rounded-xl flex items-center justify-center shadow-md active:scale-90 transition-all`}
+                            >
                                 <Plus size={16} />
                             </button>
                         ) : (
-                            <div className="flex items-center gap-1 bg-amber-50 rounded-xl border border-amber-200 px-1 py-0.5">
-                                <button onClick={onRemove} className="w-6 h-6 flex items-center justify-center rounded-lg text-amber-600 hover:bg-amber-100 transition-colors active:scale-90">
+                            <div 
+                                onClick={(e) => isCombo && e.stopPropagation()}
+                                className={`flex items-center gap-1 bg-amber-50 border-amber-200 rounded-xl border px-1 py-0.5`}
+                            >
+                                <button onClick={onRemove} className={`w-6 h-6 flex items-center justify-center rounded-lg text-amber-600 hover:bg-amber-100 transition-colors active:scale-90`}>
                                     <Minus size={12} />
                                 </button>
-                                <span className="w-4 text-center font-black text-amber-700 text-xs">{qty}</span>
-                                <button onClick={onAdd} className="w-6 h-6 flex items-center justify-center rounded-lg text-amber-600 hover:bg-amber-100 transition-colors active:scale-90">
+                                <span className={`w-4 text-center font-black text-xs text-amber-700`}>{qty}</span>
+                                <button onClick={onAdd} className={`w-6 h-6 flex items-center justify-center rounded-lg text-amber-600 hover:bg-amber-100 transition-colors active:scale-90`}>
                                     <Plus size={12} />
                                 </button>
                             </div>
@@ -140,6 +166,7 @@ function OrderPageContent() {
 
     const [tableInfo, setTableInfo] = useState<BanAn | null>(null);
     const [monAnList, setMonAnList] = useState<any[]>([]);
+    const [comboList, setComboList] = useState<any[]>([]);
     const [danhMucList, setDanhMucList] = useState<any[]>([]);
     const [selectedDanhMuc, setSelectedDanhMuc] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -150,6 +177,7 @@ function OrderPageContent() {
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeOrder, setActiveOrder] = useState<any>(null);
+    const [viewingCombo, setViewingCombo] = useState<Combo | null>(null);
 
     const { socket } = useSocket();
 
@@ -157,17 +185,20 @@ function OrderPageContent() {
     const loadData = useCallback(async () => {
         if (!tableId) { setIsLoading(false); return; }
         try {
-            const [table, monAn, danhMuc, order] = await Promise.all([
+            const [table, monAn, danhMuc, order, combos] = await Promise.all([
                 fetchTableInfo(tableId),
                 fetchMonAn(),
                 fetchDanhMuc(),
-                fetchActiveInvoice(tableId)
+                fetchActiveInvoice(tableId),
+                comboService.getPublic()
             ]);
             setTableInfo(table);
             setMonAnList(monAn);
             setDanhMucList(danhMuc);
             setActiveOrder(order);
-        } catch {
+            setComboList(combos);
+        } catch (err) {
+            console.error(err);
             setError('Không thể tải dữ liệu. Vui lòng quét lại mã QR.');
         } finally {
             setIsLoading(false);
@@ -182,7 +213,8 @@ function OrderPageContent() {
         if (!socket || !tableId) return;
 
         const handleMenuUpdate = () => {
-            fetchMonAn().then(setMonAnList).catch(console.error);
+            console.log("🔄 Menu updated from server...");
+            loadData(); // Re-fetch everything
         };
 
         const handleOrderUpdate = () => {
@@ -201,11 +233,22 @@ function OrderPageContent() {
     // ── Cart helpers ──
     const getQty = (id: string) => cart.find(c => c.id === id)?.so_luong ?? 0;
 
-    const addToCart = (mon: any) => {
+    const addToCart = (item: any, isCombo = false) => {
         setCart(prev => {
-            const existing = prev.find(c => c.id === mon.id);
-            if (existing) return prev.map(c => c.id === mon.id ? { ...c, so_luong: c.so_luong + 1 } : c);
-            return [...prev, { id: mon.id, ten_mon: mon.ten_mon, gia_tien: mon.gia_tien, hinh_anh_mon: mon.hinh_anh_mon, so_luong: 1 }];
+            const existing = prev.find(c => c.id === item.id);
+            if (existing) return prev.map(c => c.id === item.id ? { ...c, so_luong: c.so_luong + 1 } : c);
+            
+            const cartItem: CartItem = {
+                id: item.id,
+                ten_mon: isCombo ? item.ten_combo : item.ten_mon,
+                gia_tien: item.gia_tien,
+                hinh_anh_mon: isCombo ? item.hinh_anh_combo : item.hinh_anh_mon,
+                so_luong: 1
+            };
+            if (isCombo) cartItem.id_combo = item.id;
+            else cartItem.id_mon_an = item.id;
+            
+            return [...prev, cartItem];
         });
     };
 
@@ -229,7 +272,11 @@ function OrderPageContent() {
             setIsSubmitting(true);
             await hoaDonService.createKhachHang({
                 id_ban: tableId,
-                chi_tiet_hoa_don: cart.map(i => ({ id_mon_an: i.id, so_luong: i.so_luong }))
+                chi_tiet_hoa_don: cart.map(i => ({ 
+                    id_mon_an: i.id_mon_an, 
+                    id_combo: i.id_combo,
+                    so_luong: i.so_luong 
+                }))
             });
             setOrderSuccess(true);
             setCart([]);
@@ -242,10 +289,15 @@ function OrderPageContent() {
     };
 
     // ── Filter ──
-    const filtered = monAnList.filter(m => {
+    const filteredDishes = monAnList.filter(m => {
         const matchCat = selectedDanhMuc === 'all' || m.id_danh_muc === selectedDanhMuc;
         const matchSearch = m.ten_mon.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchCat && matchSearch;
+        return matchCat && matchSearch && selectedDanhMuc !== 'combo' && m.con_hang;
+    });
+
+    const filteredCombos = comboList.filter(c => {
+        const matchSearch = c.ten_combo.toLowerCase().includes(searchTerm.toLowerCase());
+        return (selectedDanhMuc === 'all' || selectedDanhMuc === 'combo') && matchSearch && c.trang_thai;
     });
 
     // ─── States ──────────────────────────────────────────────────────────────
@@ -350,7 +402,7 @@ function OrderPageContent() {
 
                 {/* Category Tabs */}
                 <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
-                    {[{ id: 'all', ten_danh_muc: 'Tất cả' }, ...danhMucList].map(dm => (
+                    {[{ id: 'all', ten_danh_muc: 'Tất cả' }, { id: 'combo', ten_danh_muc: 'Combo' }, ...danhMucList].map(dm => (
                         <button
                             key={dm.id}
                             onClick={() => setSelectedDanhMuc(dm.id)}
@@ -364,15 +416,28 @@ function OrderPageContent() {
                     ))}
                 </div>
 
-                {/* Dish Grid */}
-                {filtered.length === 0 ? (
+                {/* Grid */}
+                {(filteredDishes.length === 0 && filteredCombos.length === 0) ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
                         <UtensilsCrossed size={40} className="text-gray-200" />
                         <p className="text-gray-400 font-bold text-sm">Không tìm thấy món nào</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 pb-32">
-                        {filtered.map(mon => (
+                        {/* Combos first */}
+                        {filteredCombos.map(combo => (
+                            <DishCard
+                                key={combo.id}
+                                mon={combo}
+                                qty={getQty(combo.id)}
+                                isCombo={true}
+                                onAdd={() => addToCart(combo, true)}
+                                onRemove={() => removeFromCart(combo.id)}
+                                onViewDetail={() => setViewingCombo(combo)}
+                            />
+                        ))}
+                        {/* Dishes */}
+                        {filteredDishes.map(mon => (
                             <DishCard
                                 key={mon.id}
                                 mon={mon}
@@ -439,7 +504,7 @@ function OrderPageContent() {
                                                 <div className="shrink-0">
                                                     {/* Trạng thái món */}
                                                     {item.trang_thai_mon === 'DangCho' && <span className="px-2 py-1 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black uppercase tracking-tight">Đang chờ</span>}
-                                                    {item.trang_thai_mon === 'DangNau' && <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black uppercase tracking-tight">Đang nấu</span>}
+                                                    {item.trang_thai_mon === 'DangNau' && <span className="px-2 py-1 rounded-md bg-amber-50 text-[#d9a01e] border border-amber-100 text-[10px] font-black uppercase tracking-tight">Đang nấu</span>}
                                                     {item.trang_thai_mon === 'DaXong' && <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black uppercase tracking-tight">Đã xong</span>}
                                                 </div>
                                             </div>
@@ -465,7 +530,7 @@ function OrderPageContent() {
                                         <CartItemRow
                                             key={item.id}
                                             item={item}
-                                            onUpdate={(id, d) => d > 0 ? addToCart({ id, ten_mon: item.ten_mon, gia_tien: item.gia_tien, hinh_anh_mon: item.hinh_anh_mon, so_luong: 1 }) : removeFromCart(id)}
+                                            onUpdate={(id, d) => d > 0 ? addToCart(item) : removeFromCart(id)}
                                             onRemove={deleteFromCart}
                                         />
                                     ))}
@@ -495,6 +560,14 @@ function OrderPageContent() {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Combo Detail Modal */}
+            {viewingCombo && (
+                <ComboDetailModal 
+                    combo={viewingCombo} 
+                    onClose={() => setViewingCombo(null)} 
+                />
             )}
         </div>
     );

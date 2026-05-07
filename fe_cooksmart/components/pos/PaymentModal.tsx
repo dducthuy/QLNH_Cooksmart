@@ -28,7 +28,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
-    // Auto-focus ô nhập tiền khi mở modal
+
     useEffect(() => {
         if (isOpen && paymentMethod === 'TienMat') {
             setCashGiven('');
@@ -62,7 +62,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                 trang_thai_hd: 'DaThanhToan',
                 phuong_thuc_tt: paymentMethod
             });
-            onSuccess(); // Sẽ gọi refresh, clear cart và tắt modal
+            onSuccess();
         } catch (error) {
             console.error("Lỗi thanh toán:", error);
             alert("Thanh toán thất bại, vui lòng thử lại.");
@@ -82,7 +82,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                         </h2>
                         <p className="text-sm text-gray-500 font-medium">Hóa đơn #{activeOrder?.id?.substring(0, 8)}</p>
                     </div>
-                    <button 
+                    <button
                         onClick={onClose}
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         disabled={isSubmitting}
@@ -99,24 +99,22 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                             <div className="space-y-3">
                                 <button
                                     onClick={() => setPaymentMethod('TienMat')}
-                                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                                        paymentMethod === 'TienMat' 
-                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${paymentMethod === 'TienMat'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                                         : 'border-gray-100 bg-white text-gray-600 hover:border-gray-200 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <Wallet size={20} className={paymentMethod === 'TienMat' ? 'text-emerald-500' : 'text-gray-400'} />
                                     <span className="font-bold">Tiền mặt</span>
                                     {paymentMethod === 'TienMat' && <CheckCircle2 size={16} className="ml-auto text-emerald-500" />}
                                 </button>
-                                
+
                                 <button
                                     onClick={() => setPaymentMethod('ChuyenKhoan')}
-                                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                                        paymentMethod === 'ChuyenKhoan' 
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                                    className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${paymentMethod === 'ChuyenKhoan'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
                                         : 'border-gray-100 bg-white text-gray-600 hover:border-gray-200 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <QrCode size={20} className={paymentMethod === 'ChuyenKhoan' ? 'text-blue-500' : 'text-gray-400'} />
                                     <span className="font-bold">Chuyển khoản / QR</span>
@@ -134,7 +132,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
 
                     {/* Right Column: Nội dung Method */}
                     <div className="flex-1 bg-white p-6 md:p-8 overflow-y-auto">
-                        
+
                         {/* ---------------- TIỀN MẶT ---------------- */}
                         {paymentMethod === 'TienMat' && (
                             <div className="space-y-6 h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
@@ -144,8 +142,8 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                             <DollarSign size={20} className="text-gray-400" />
                                         </div>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={cashGiven ? formatVND(parseInt(cashGiven.replace(/\D/g, '')) || 0) : ''}
                                             onChange={(e) => setCashGiven(e.target.value.replace(/\D/g, ''))}
                                             className="w-full pl-11 pr-4 py-4 text-2xl font-bold bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-emerald-500 focus:bg-white focus:outline-none transition-colors text-right"
@@ -159,7 +157,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                                 {/* Gợi ý tiền nhanh */}
                                 <div className="grid grid-cols-3 gap-2">
                                     {[totalAmount, 500000, 1000000].map((amt, idx) => (
-                                        <button 
+                                        <button
                                             key={idx}
                                             onClick={() => handleQuickCash(amt)}
                                             className="py-2 px-1 border border-gray-200 rounded-xl bg-white text-gray-600 font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
@@ -169,16 +167,14 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                                     ))}
                                 </div>
 
-                                <div className={`mt-auto p-5 rounded-2xl border-2 flex items-center justify-between ${
-                                    cashAmount > 0 && isCashValid 
-                                        ? 'border-emerald-100 bg-emerald-50' 
-                                        : cashAmount > 0 ? 'border-red-100 bg-red-50' : 'border-gray-100 bg-gray-50'
-                                }`}>
+                                <div className={`mt-auto p-5 rounded-2xl border-2 flex items-center justify-between ${cashAmount > 0 && isCashValid
+                                    ? 'border-emerald-100 bg-emerald-50'
+                                    : cashAmount > 0 ? 'border-red-100 bg-red-50' : 'border-gray-100 bg-gray-50'
+                                    }`}>
                                     <div>
                                         <p className="text-xs font-black uppercase tracking-widest mb-1 text-gray-500">Tiền Thừa Trả Khách</p>
-                                        <p className={`text-2xl font-black ${
-                                            cashAmount > 0 && isCashValid ? 'text-emerald-600' : cashAmount > 0 ? 'text-red-500' : 'text-gray-400'
-                                        }`}>
+                                        <p className={`text-2xl font-black ${cashAmount > 0 && isCashValid ? 'text-emerald-600' : cashAmount > 0 ? 'text-red-500' : 'text-gray-400'
+                                            }`}>
                                             {formatVND(changeAmount > 0 ? changeAmount : 0)}
                                         </p>
                                     </div>
@@ -187,12 +183,12 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                                     )}
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={handlePayment}
                                     disabled={isSubmitting || !isCashValid}
                                     className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 mt-4"
                                 >
-                                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />} 
+                                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
                                     {isSubmitting ? 'Đang Xử Lý...' : 'Hoàn Tất Thanh Toán'}
                                 </button>
                             </div>
@@ -201,7 +197,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                         {/* ---------------- CHUYỂN KHOẢN ---------------- */}
                         {paymentMethod === 'ChuyenKhoan' && (
                             <div className="h-full flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 relative">
-                                
+
                                 <div className="text-center mb-6">
                                     <h4 className="font-black text-gray-800 text-lg">Quét Mã QR Chuyển Khoản</h4>
                                     <p className="text-sm font-medium text-gray-500">Người nhận: <span className="font-bold text-gray-900">{ACCOUNT_NAME}</span></p>
@@ -212,17 +208,17 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={qrUrl} alt="VietQR" className="w-full rounded-2xl" />
                                 </div>
-                                
+
                                 <p className="mt-5 text-xs font-medium text-gray-400 text-center px-4">
                                     Đưa mã này cho khách hàng quét trên ứng dụng ngân hàng. Vui lòng xác nhận bạn đã nhận được tiền trước khi bấm hoàn tất.
                                 </p>
 
-                                <button 
+                                <button
                                     onClick={handlePayment}
                                     disabled={isSubmitting}
                                     className="w-full py-4 mt-auto rounded-2xl font-black uppercase tracking-[0.2em] text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                                 >
-                                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />} 
+                                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
                                     {isSubmitting ? 'Đang Xử Lý...' : 'Đã Nhận Được Tiền'}
                                 </button>
                             </div>

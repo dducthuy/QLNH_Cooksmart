@@ -1,16 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, CheckSquare, Loader2 } from 'lucide-react';
 import { HoaDon } from '@/types/hoaDon';
 import { hoaDonService } from '@/services/hoaDon.service';
+import { comboService } from '@/services/combo.service';
+import { Combo } from '@/types/combo';
 
 export default function KitchenTicket({ ticket, onStatusChange }: { ticket: HoaDon, onStatusChange: (id_chi_tiet: string, status: "DangCho" | "DangNau" | "DaXong") => void }) {
     const isUrgent = new Date().getTime() - new Date(ticket.thoi_gian_tao).getTime() > 15 * 60 * 1000; // > 15 min
     const allDone = ticket.ChiTietHoaDons?.every(item => item.trang_thai_mon === 'DaXong');
 
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
+    const [comboDetails, setComboDetails] = useState<Record<string, Combo>>({});
 
+
+    useEffect(() => {
+        const fetchCombos = async () => {
+            const comboIds = Array.from(new Set(
+                ticket.ChiTietHoaDons?.filter(i => i.id_combo && !comboDetails[i.id_combo])
+                    .map(i => i.id_combo!) || []
+            ));
+
+            for (const id of comboIds) {
+                try {
+                    const combo = await comboService.getById(id);
+                    setComboDetails(prev => ({ ...prev, [id]: combo }));
+                } catch (e) {
+                    console.error("Lỗi tải combo trong Bếp:", e);
+                }
+            }
+        };
+        fetchCombos();
+    }, [ticket.ChiTietHoaDons]);
     const getBorderColor = () => {
         if (allDone) return 'border-emerald-500 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]';
         if (isUrgent) return 'border-red-500 shadow-[0_0_15px_-3px_rgba(239,68,68,0.3)]';
@@ -105,8 +127,20 @@ export default function KitchenTicket({ ticket, onStatusChange }: { ticket: HoaD
                                 <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-black text-sm border bg-gray-700 border-gray-600 text-white">
                                     {isUpdating === item.id ? <Loader2 size={14} className="animate-spin" /> : <span><span className="text-xs mr-0.5">x</span>{item.so_luong}</span>}
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 flex flex-col gap-1">
                                     <p className="font-bold text-sm text-gray-100">{item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn'}</p>
+
+                                    {/* Hiển thị thành phần Combo luôn */}
+                                    {item.id_combo && comboDetails[item.id_combo] && (
+                                        <div className="flex flex-col gap-0.5 mt-1 border-l-2 border-gray-600 pl-2">
+                                            {comboDetails[item.id_combo].ChiTietCombos?.map((ct, idx) => (
+                                                <p key={idx} className="text-[10px] text-gray-400 font-medium">
+                                                    • {ct.MonAn?.ten_mon} <span className="text-gray-500 ml-1">x{ct.so_luong}</span>
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {item.ghi_chu && <p className="text-[11px] text-amber-400 italic mt-0.5 font-medium">Lưu ý: {item.ghi_chu}</p>}
                                 </div>
                             </button>
@@ -131,8 +165,20 @@ export default function KitchenTicket({ ticket, onStatusChange }: { ticket: HoaD
                                 <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-black text-sm border bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-500/20">
                                     {isUpdating === item.id ? <Loader2 size={14} className="animate-spin" /> : <span><span className="text-xs mr-0.5">x</span>{item.so_luong}</span>}
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 flex flex-col gap-1">
                                     <p className="font-bold text-sm text-amber-50">{item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn'}</p>
+
+                                    {/* Hiển thị thành phần Combo luôn */}
+                                    {item.id_combo && comboDetails[item.id_combo] && (
+                                        <div className="flex flex-col gap-0.5 mt-1 border-l-2 border-amber-500/30 pl-2">
+                                            {comboDetails[item.id_combo].ChiTietCombos?.map((ct, idx) => (
+                                                <p key={idx} className="text-[10px] text-amber-200/60 font-medium">
+                                                    • {ct.MonAn?.ten_mon} <span className="text-amber-500/40 ml-1">x{ct.so_luong}</span>
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {item.ghi_chu && <p className="text-[11px] text-amber-300 italic mt-0.5 font-medium">Lưu ý: {item.ghi_chu}</p>}
                                 </div>
                             </button>
@@ -155,8 +201,19 @@ export default function KitchenTicket({ ticket, onStatusChange }: { ticket: HoaD
                                 <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-black text-sm border bg-emerald-500/50 border-emerald-500/30 text-emerald-50">
                                     <span><span className="text-xs mr-0.5">x</span>{item.so_luong}</span>
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 flex flex-col gap-1">
                                     <p className="font-bold text-sm text-gray-400 line-through">{item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn'}</p>
+
+                                    {/* Hiển thị thành phần Combo (vẫn hiện nhưng mờ đi) */}
+                                    {item.id_combo && comboDetails[item.id_combo] && (
+                                        <div className="flex flex-col gap-0.5 mt-1 border-l-2 border-gray-700 pl-2 opacity-50">
+                                            {comboDetails[item.id_combo].ChiTietCombos?.map((ct, idx) => (
+                                                <p key={idx} className="text-[10px] text-gray-500 font-medium line-through">
+                                                    • {ct.MonAn?.ten_mon}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <CheckSquare size={18} className="text-emerald-500 shrink-0 mt-1" />
                             </div>

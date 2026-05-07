@@ -7,9 +7,9 @@ exports.layLichSuCa = async (req, res, next) => {
     try {
         const {
             status,      // "open" | "closed"
-            userId,      // ID nhân viên
-            tuNgay,      // "YYYY-MM-DD"
-            denNgay,     // "YYYY-MM-DD"
+            userId,
+            tuNgay,
+            denNgay,
             limit = 20,
             offset = 0,
         } = req.query;
@@ -23,12 +23,11 @@ exports.layLichSuCa = async (req, res, next) => {
             whereClause.trang_thai_ca = "DaKetThuc";
         }
 
-        // Lọc theo nhân viên
+
         if (userId) {
             whereClause.id_nhan_vien = userId;
         }
 
-        // Lọc theo khoảng thời gian mở ca
         if (tuNgay || denNgay) {
             whereClause.thoi_gian_bat_dau = {};
             if (tuNgay) {
@@ -155,7 +154,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     tong_tien_mat: parseFloat(thongKe.tong_tien_mat) || 0,
                     tong_chuyen_khoan: parseFloat(thongKe.tong_chuyen_khoan) || 0,
                     tong_chi_tieu: tongTienChi,
-      
+
                     tien_mat_ket_ly_thuyet:
                         Number(caLamViec.tien_dau_ca) +
                         (parseFloat(thongKe.tong_tien_mat) || 0) -

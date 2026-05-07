@@ -4,18 +4,21 @@ import React, { useState, useEffect } from 'react';
 import { Search, UtensilsCrossed, Plus, ListFilter, Loader2 } from 'lucide-react';
 import { dishService } from '@/services/dish.service';
 import { categoryService } from '@/services/category.service';
+import { comboService } from '@/services/combo.service';
 import { MonAn } from '@/types/monAn';
 import { DanhMuc } from '@/types/danhMuc';
+import { Combo } from '@/types/combo';
 import { usePos } from '@/context/PosContext';
 import { useSocket } from '@/context/SocketContext';
 
 export default function MenuSection() {
-    const { addToCart } = usePos();
+    const { addToCart, setViewingCombo } = usePos();
     const { socket } = useSocket();
     const [activeTab, setActiveTab] = useState('Tất Cả');
     const [searchTerm, setSearchTerm] = useState('');
 
     const [items, setItems] = useState<MonAn[]>([]);
+    const [combos, setCombos] = useState<Combo[]>([]);
     const [categories, setCategories] = useState<DanhMuc[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -23,12 +26,14 @@ export default function MenuSection() {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const [categoriesData, dishesData] = await Promise.all([
+                const [categoriesData, dishesData, combosData] = await Promise.all([
                     categoryService.getAll(),
-                    dishService.getAll()
+                    dishService.getAll(),
+                    comboService.getAll()
                 ]);
                 setCategories(categoriesData);
                 setItems(dishesData);
+                setCombos(combosData);
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu thực đơn:", error);
             } finally {
@@ -38,20 +43,28 @@ export default function MenuSection() {
 
         fetchData();
 
-        // Lắng nghe sự kiện cập nhật menu từ backend
         if (socket) {
             socket.on('cap_nhat_menu', fetchData);
+            socket.on('cap_nhat_combo', fetchData);
             return () => {
                 socket.off('cap_nhat_menu', fetchData);
+                socket.off('cap_nhat_combo', fetchData);
             };
         }
     }, [socket]);
 
-    const categoryNames = ['Tất Cả', ...categories.map(c => c.ten_danh_muc)];
+    const categoryNames = ['Tất Cả', 'Combo', ...categories.map(c => c.ten_danh_muc)];
 
-    const filtered = items.filter(item =>
-        (activeTab === 'Tất Cả' || item.DanhMuc?.ten_danh_muc === activeTab) &&
+    const filteredDishes = items.filter(item =>
+        item.con_hang &&
+        (activeTab === 'Tất Cả' || (activeTab !== 'Combo' && item.DanhMuc?.ten_danh_muc === activeTab)) &&
         item.ten_mon.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const filteredCombos = combos.filter(combo =>
+        combo.trang_thai &&
+        (activeTab === 'Tất Cả' || activeTab === 'Combo') &&
+        combo.ten_combo.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -64,7 +77,7 @@ export default function MenuSection() {
                     </div>
                     <div>
                         <h2 className="text-sm font-black text-gray-800 uppercase tracking-wide">Thực Đơn</h2>
-                        <p className="text-[10px] uppercase font-bold text-gray-400 mt-0.5">{items.length} Món ăn</p>
+                        <p className="text-[10px] uppercase font-bold text-gray-400 mt-0.5">{items.length + combos.length} Món ăn & Combo</p>
                     </div>
                 </div>
 
@@ -105,15 +118,68 @@ export default function MenuSection() {
                     <div className="w-full h-full flex items-center justify-center">
                         <Loader2 className="animate-spin text-[#d9a01e]" size={32} />
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : (filteredDishes.length === 0 && filteredCombos.length === 0) ? (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-3">
                         <UtensilsCrossed size={48} className="text-gray-200" />
                         <p className="font-bold uppercase tracking-widest text-xs">Không tìm thấy món ăn</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filtered.map(item => (
-                            <div key={item.id} className={`bg-white p-3 rounded-3xl border border-gray-100 hover:border-[#d9a01e]/50 transition-all group flex flex-col active:scale-95 border-b-4 hover:border-b-[#d9a01e] relative ${!item.con_hang ? 'opacity-70 pointer-events-none' : 'cursor-pointer hover:shadow-lg'}`}>
+                        {/* Render Combos */}
+                        {filteredCombos.map(combo => (
+                            <div 
+                                key={combo.id} 
+                                onClick={() => setViewingCombo(combo)}
+                                className="bg-white p-3 rounded-3xl border border-gray-100 hover:border-[#d9a01e]/50 transition-all group flex flex-col cursor-pointer hover:shadow-lg active:scale-95 border-b-4 hover:border-b-[#d9a01e] relative"
+                            >
+                                <div className="aspect-square bg-gray-50 rounded-2xl mb-3 overflow-hidden relative">
+                                    <img
+                                        src={combo.hinh_anh_combo || `https://ui-avatars.com/api/?name=${encodeURIComponent(combo.ten_combo)}&background=d9a01e&color=fff&size=100`}
+                                        alt={combo.ten_combo}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                    <div className="absolute top-2 right-2 bg-[#d9a01e] text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg">Combo</div>
+                                </div>
+                                <h3 className="font-bold text-gray-800 text-sm leading-tight px-1 line-clamp-2">{combo.ten_combo}</h3>
+                                <div className="mt-auto pt-3 px-1 flex items-center justify-between gap-1.5">
+                                    <span className="font-black tracking-tight text-[#d9a01e] text-sm">
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.gia_tien)}
+                                    </span>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={(e) => { 
+                                                e.stopPropagation();
+                                                addToCart({
+                                                    id_combo: combo.id,
+                                                    ten_mon: combo.ten_combo,
+                                                    gia_tien: combo.gia_tien,
+                                                    hinh_anh_mon: combo.hinh_anh_combo,
+                                                    so_luong: 1
+                                                });
+                                            }}
+                                            className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#d9a01e] border border-gray-100 group-hover:border-[#d9a01e] group-hover:text-white flex items-center justify-center transition-all shadow-sm"
+                                            title="Thêm vào giỏ"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Render Dishes */}
+                        {filteredDishes.map(item => (
+                            <div 
+                                key={item.id} 
+                                onClick={() => item.con_hang && addToCart({
+                                    id_mon_an: item.id,
+                                    ten_mon: item.ten_mon,
+                                    gia_tien: item.gia_tien,
+                                    hinh_anh_mon: item.hinh_anh_mon,
+                                    so_luong: 1
+                                })}
+                                className={`bg-white p-3 rounded-3xl border border-gray-100 hover:border-[#d9a01e]/50 transition-all group flex flex-col active:scale-95 border-b-4 hover:border-b-[#d9a01e] relative ${!item.con_hang ? 'opacity-70 pointer-events-none' : 'cursor-pointer hover:shadow-lg'}`}
+                            >
                                 <div className="aspect-square bg-gray-50 rounded-2xl mb-3 overflow-hidden relative">
                                     <img
                                         src={item.hinh_anh_mon || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.ten_mon)}&background=random&color=fff&size=100`}
@@ -150,6 +216,7 @@ export default function MenuSection() {
                     </div>
                 )}
             </div>
+
         </div>
     );
 }

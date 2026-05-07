@@ -45,28 +45,36 @@ export default function PendingOrdersPanel() {
         try {
             setIsLoading(true);
             const data = await hoaDonService.getAll({ trang_thai_hd: 'ChoXuLy' });
-            setPendingOrders(data);
-            setPendingOrdersCount(data.length);
+            
+            // Đảm bảo data là mảng trước khi xử lý
+            const orders = Array.isArray(data) ? data : [];
+            setPendingOrders(orders);
+            setPendingOrdersCount(orders.length);
 
             // Fetch active invoices for occupied tables
             const activeMap: Record<string, HoaDon> = {};
-            await Promise.all(data.map(async (order) => {
+            await Promise.all(orders.map(async (order) => {
                 if (order.id_ban) {
                     try {
                         const tableInvoices = await hoaDonService.getAll({ id_ban: order.id_ban });
-                        const active = tableInvoices.find(i => i.id !== order.id && (i.trang_thai_hd === 'DangPhucVu' || i.trang_thai_hd === 'ChoXuLy'));
-                        if (active) {
-                            const full = await hoaDonService.getById(active.id);
-                            activeMap[order.id_ban] = full;
+                        if (Array.isArray(tableInvoices)) {
+                            const active = tableInvoices.find(i => i.id !== order.id && (i.trang_thai_hd === 'DangPhucVu' || i.trang_thai_hd === 'ChoXuLy'));
+                            if (active) {
+                                const full = await hoaDonService.getById(active.id);
+                                activeMap[order.id_ban] = full;
+                            }
                         }
                     } catch (e) {
-                        console.error("Lỗi tải đơn hiện tại của bàn:", order.id_ban);
+                        console.error("Lỗi tải đơn hiện tại của bàn:", order.id_ban, e);
                     }
                 }
             }));
             setActiveInvoices(activeMap);
-        } catch {
-            console.error('Lỗi tải đơn chờ duyệt');
+        } catch (err: any) {
+            console.error('Lỗi tải đơn chờ duyệt:', err);
+            // Hiển thị thông báo chi tiết hơn nếu có thể
+            const msg = err.response?.data?.message || err.message || 'Lỗi tải đơn chờ duyệt';
+            console.error('Chi tiết lỗi:', msg);
         } finally {
             setIsLoading(false);
         }

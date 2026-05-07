@@ -16,7 +16,7 @@ import {
 export const hoaDonService = {
     async getAll(params?: any): Promise<HoaDon[]> {
         const response = await http.get<LayTatCaHoaDonResponse>('/hoa-don/noi-bo', { params });
-        return response.data.data;
+        return response.data?.data || [];
     },
 
     async getById(id: string): Promise<HoaDon> {

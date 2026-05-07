@@ -74,7 +74,7 @@ KhuyenMai.hasMany(HoaDon, { foreignKey: "id_khuyen_mai" });
 HoaDon.belongsTo(KhuyenMai, { foreignKey: "id_khuyen_mai" });
 
 // [Combo] 1 -- N [ChiTietCombo]
-Combo.hasMany(ChiTietCombo, { foreignKey: "id_combo", onDelete: "CASCADE" });
+Combo.hasMany(ChiTietCombo, { as: "ChiTietCombos", foreignKey: "id_combo", onDelete: "CASCADE" });
 ChiTietCombo.belongsTo(Combo, { foreignKey: "id_combo" });
 
 // [MonAn] 1 -- N [ChiTietCombo]

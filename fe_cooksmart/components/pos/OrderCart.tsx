@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { ShoppingBag, Minus, Plus, Trash2, Send, CreditCard, Loader2 } from 'lucide-react';
 import { usePos } from '@/context/PosContext';
 import { hoaDonService } from '@/services/hoaDon.service';
+import { comboService } from '@/services/combo.service';
 import PaymentModal from './PaymentModal';
+import { Combo } from '@/types/combo';
 
 export default function OrderCart() {
     const {
@@ -17,7 +19,8 @@ export default function OrderCart() {
         isLoadingOrder,
         refreshActiveOrder,
         hasActiveShift,
-        playNotificationSound
+        playNotificationSound,
+        setViewingCombo
     } = usePos();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -43,6 +46,7 @@ export default function OrderCart() {
                 id_ban: selectedTable.id,
                 chi_tiet_hoa_don: cart.map(item => ({
                     id_mon_an: item.id_mon_an,
+                    id_combo: item.id_combo,
                     so_luong: item.so_luong,
                     ghi_chu: item.ghi_chu
                 }))
@@ -65,9 +69,18 @@ export default function OrderCart() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'DangCho': return <span className="px-2 py-1 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black uppercase tracking-tight">Đang chờ</span>;
-            case 'DangNau': return <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black uppercase tracking-tight animate-pulse">Đang nấu</span>;
+            case 'DangNau': return <span className="px-2 py-1 rounded-md bg-amber-50 text-[#d9a01e] border border-amber-100 text-[10px] font-black uppercase tracking-tight animate-pulse">Đang nấu</span>;
             case 'DaXong': return <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black uppercase tracking-tight">Đã xong</span>;
             default: return null;
+        }
+    };
+
+    const handleViewComboDetail = async (comboId: string) => {
+        try {
+            const combo = await comboService.getById(comboId);
+            setViewingCombo(combo);
+        } catch (error) {
+            console.error("Lỗi tải chi tiết combo:", error);
         }
     };
 
@@ -116,7 +129,14 @@ export default function OrderCart() {
                                     {activeOrder.ChiTietHoaDons.map((item, index) => (
                                         <div key={`active-${item.id}-${index}`} className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col gap-1.5 opacity-80 border-dashed">
                                             <div className="flex justify-between items-start gap-2">
-                                                <h4 className="font-bold text-gray-700 text-sm leading-tight flex-1 line-clamp-2">{item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn'}</h4>
+                                                <div className="flex-1 flex items-center gap-2">
+                                                    <h4 
+                                                        className={`font-bold text-gray-700 text-sm leading-tight line-clamp-2 ${item.Combo ? 'cursor-pointer hover:text-[#d9a01e] transition-colors' : ''}`}
+                                                        onClick={() => item.Combo && handleViewComboDetail(item.id_combo!)}
+                                                    >
+                                                        {item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn'}
+                                                    </h4>
+                                                </div>
                                                 {getStatusBadge(item.trang_thai_mon)}
                                             </div>
                                             <div className="flex justify-between items-center">
@@ -137,21 +157,28 @@ export default function OrderCart() {
                         {/* Section 2: Món mới chọn (Draft items to be sent) */}
                         {cart.length > 0 && (
                             <div>
-                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 mb-3 ml-1 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#d9a01e] mb-3 ml-1 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#d9a01e] animate-pulse"></div>
                                     Món mới chọn ({cart.length})
                                 </h3>
                                 <div className="space-y-3">
                                     {cart.map((item, index) => (
-                                        <div key={`cart-${item.id_mon_an}-${index}`} className="p-3 bg-blue-50/30 rounded-2xl border border-blue-100/50 flex flex-col gap-2 group shadow-sm ring-1 ring-blue-500/5">
-                                            <div className="flex justify-between items-start">
-                                                <h4 className="font-bold text-gray-800 text-base leading-tight flex-1 pr-2">{item.ten_mon}</h4>
-                                                <button
-                                                    onClick={() => removeFromCart(item.id_mon_an)}
-                                                    className="text-gray-300 hover:text-red-500 transition-colors p-1 bg-white rounded-lg border border-gray-100 shadow-sm"
+                                        <div key={`cart-${item.id_mon_an}-${index}`} className="p-3 bg-amber-50/30 rounded-2xl border border-amber-100/50 flex flex-col gap-2 group shadow-sm ring-1 ring-[#d9a01e]/5">
+                                        <div className="flex justify-between items-start gap-2">
+                                                <h4 
+                                                    className={`font-bold text-gray-800 text-base leading-tight flex-1 pr-2 ${item.id_combo ? 'cursor-pointer hover:text-[#d9a01e] transition-colors' : ''}`}
+                                                    onClick={() => item.id_combo && handleViewComboDetail(item.id_combo)}
                                                 >
-                                                    <Trash2 size={12} />
-                                                </button>
+                                                    {item.ten_mon}
+                                                </h4>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => removeFromCart(item.id_mon_an || item.id_combo!, !!item.id_combo)}
+                                                        className="text-gray-300 hover:text-red-500 transition-colors p-1 bg-white rounded-lg border border-gray-100 shadow-sm"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <p className="text-[#d9a01e] font-black text-sm">
                                                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia_tien)}
@@ -160,18 +187,18 @@ export default function OrderCart() {
                                                 <p className="text-xs text-gray-400 italic font-medium mt-0.5">Ghi chú: {item.ghi_chu}</p>
                                             )}
 
-                                            <div className="flex justify-between items-center mt-1 pt-2 border-t border-blue-100 border-dashed">
+                                            <div className="flex justify-between items-center mt-1 pt-2 border-t border-amber-100 border-dashed">
                                                 <span className="text-xs uppercase font-bold text-gray-400">SL:</span>
                                                 <div className="flex items-center gap-3 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
                                                     <button
-                                                        onClick={() => updateQuantity(item.id_mon_an, -1)}
+                                                        onClick={() => updateQuantity(item.id_mon_an || item.id_combo!, -1, !!item.id_combo)}
                                                         className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#d9a01e] transition-colors rounded-lg"
                                                     >
                                                         <Minus size={14} />
                                                     </button>
                                                     <span className="text-sm font-black w-4 text-center text-gray-800">{item.so_luong}</span>
                                                     <button
-                                                        onClick={() => updateQuantity(item.id_mon_an, 1)}
+                                                        onClick={() => updateQuantity(item.id_mon_an || item.id_combo!, 1, !!item.id_combo)}
                                                         className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#d9a01e] transition-colors rounded-lg"
                                                     >
                                                         <Plus size={14} />
@@ -238,7 +265,7 @@ export default function OrderCart() {
                     <button
                         onClick={handleGuiBep}
                         disabled={isSubmitting || !selectedTable || cart.length === 0}
-                        className="flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest bg-[#d9a01e] hover:bg-[#c89117] text-white shadow-lg shadow-[#d9a01e]/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                         {isSubmitting ? 'Đang gửi...' : 'Gửi Bếp'}
@@ -258,6 +285,7 @@ export default function OrderCart() {
                     refreshActiveOrder();
                 }}
             />
+
         </div>
     );
 }

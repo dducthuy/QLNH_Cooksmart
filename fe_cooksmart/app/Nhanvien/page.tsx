@@ -7,6 +7,7 @@ import OrderCart from '@/components/pos/OrderCart';
 import PendingOrdersPanel from '@/components/pos/PendingOrdersPanel';
 import { usePos } from '@/context/PosContext';
 import ShiftModal from '@/components/pos/ShiftModal';
+import ComboDetailModal from '@/components/ui/ComboDetailModal';
 import { LayoutGrid, UtensilsCrossed, ShoppingBag, Lock, Loader2, ClipboardList } from 'lucide-react';
 import { ketCaService } from '@/services/ketCa.service';
 import { ThongTinCaHienTaiResponse } from '@/types/ketCa';
@@ -18,16 +19,18 @@ export default function PosPage() {
     const [mobileTab, setMobileTab] = useState<'tables' | 'menu' | 'cart' | 'pending'>('menu');
 
     const { isThuNgan, isAdmin, vaiTro } = useAuth();
-    const { 
-        setCurrentShift, 
-        currentShift, 
-        hasActiveShift, 
-        refreshShiftStatus, 
+    const {
+        setCurrentShift,
+        currentShift,
+        hasActiveShift,
+        refreshShiftStatus,
         isInitialShiftCheckDone,
         isShiftModalOpen,
         setIsShiftModalOpen,
         shiftMode,
-        setShiftMode
+        setShiftMode,
+        viewingCombo,
+        setViewingCombo
     } = usePos();
 
     const isCheckingShift = !isInitialShiftCheckDone;
@@ -44,7 +47,7 @@ export default function PosPage() {
         }
     };
 
-    // Theo dõi thay đổi ca từ Socket (thông qua context) để đóng/mở modal tự động
+
     useEffect(() => {
         if (hasActiveShift && shiftMode === 'OPEN') {
             setIsShiftModalOpen(false);
@@ -70,28 +73,25 @@ export default function PosPage() {
 
     return (
         <div className="flex flex-col lg:flex-row w-full h-full bg-[#f8f9fc] p-0 lg:p-4 gap-0 lg:gap-4 overflow-hidden relative">
-            
+
 
 
             {/* Cột 1: Quản lý Bàn Ăn */}
-            <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col h-full ${
-                mobileTab === 'tables' ? 'flex' : 'hidden lg:flex'
-            }`}>
+            <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col h-full ${mobileTab === 'tables' ? 'flex' : 'hidden lg:flex'
+                }`}>
                 <TableGrid />
             </div>
 
             {/* Cột 2: Thực Đơn & Chọn Món */}
-            <div className={`flex-1 bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col relative z-0 h-full ${
-                mobileTab === 'menu' ? 'flex' : 'hidden lg:flex'
-            }`}>
+            <div className={`flex-1 bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col relative z-0 h-full ${mobileTab === 'menu' ? 'flex' : 'hidden lg:flex'
+                }`}>
 
                 <MenuSection />
             </div>
 
             {/* Cột 3: Giỏ Hàng & Thanh Toán */}
-            <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col z-10 h-full ${
-                mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
-            }`}>
+            <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col z-10 h-full ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
+                }`}>
                 <OrderCart />
             </div>
 
@@ -100,38 +100,34 @@ export default function PosPage() {
 
             {/* Thanh điều hướng Bottom Navigation Bar DÀNH RIÊNG CHO MOBILE */}
             <div className="lg:hidden shrink-0 flex items-center justify-around bg-white border-t border-gray-100 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] p-2 pb-safe z-50">
-                <button 
-                    onClick={() => setMobileTab('tables')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${
-                        mobileTab === 'tables' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                <button
+                    onClick={() => setMobileTab('tables')}
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${mobileTab === 'tables' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                 >
                     <LayoutGrid size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Bàn Ăn</span>
                 </button>
-                <button 
-                    onClick={() => setMobileTab('menu')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${
-                        mobileTab === 'menu' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                <button
+                    onClick={() => setMobileTab('menu')}
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all ${mobileTab === 'menu' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                 >
                     <UtensilsCrossed size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Thực Đơn</span>
                 </button>
-                <button 
-                    onClick={() => setMobileTab('cart')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${
-                        mobileTab === 'cart' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                <button
+                    onClick={() => setMobileTab('cart')}
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${mobileTab === 'cart' ? 'text-[#d9a01e] bg-[#d9a01e]/10 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                 >
                     <ShoppingBag size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Giỏ Hàng</span>
                 </button>
-                <button 
-                    onClick={() => setMobileTab('pending')} 
-                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${
-                        mobileTab === 'pending' ? 'text-violet-600 bg-violet-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                <button
+                    onClick={() => setMobileTab('pending')}
+                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${mobileTab === 'pending' ? 'text-violet-600 bg-violet-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                 >
                     <ClipboardList size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">QR Orders</span>
@@ -139,7 +135,7 @@ export default function PosPage() {
             </div>
 
             {/* Cửa sổ Quản lý Ca (Shift Modal) */}
-            <ShiftModal 
+            <ShiftModal
                 isOpen={isShiftModalOpen}
                 mode={shiftMode}
                 currentShiftData={currentShift}
@@ -148,9 +144,17 @@ export default function PosPage() {
                     setIsShiftModalOpen(false);
                 }}
                 onSuccess={() => {
-                    fetchCurrentShift(); // Refresh lại lấy dữ liệu mới
+                    fetchCurrentShift();
                 }}
             />
+
+            {/* Combo Detail Modal - Cấp cao nhất để che phủ toàn bộ */}
+            {viewingCombo && (
+                <ComboDetailModal
+                    combo={viewingCombo}
+                    onClose={() => setViewingCombo(null)}
+                />
+            )}
 
         </div>
     );

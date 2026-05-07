@@ -16,6 +16,7 @@ import {
     AdminDeleteConfirm,
     AdminModal,
 } from '@/components/admin/ui';
+import { useSocket } from '@/context/SocketContext';
 
 export default function MenuManagementPage() {
     const [dishes, setDishes] = useState<MonAn[]>([]);
@@ -30,6 +31,7 @@ export default function MenuManagementPage() {
     const [filterCategory, setFilterCategory] = useState('all');
 
     const { showToast, toastNode } = useAdminToast();
+    const { socket } = useSocket();
 
     const fetchData = useCallback(async () => {
         try {
@@ -63,6 +65,7 @@ export default function MenuManagementPage() {
                 showToast(`Đã thêm "${data.ten_mon}" thành công!`);
             }
             setIsFormOpen(false);
+            if (socket) socket.emit('cap_nhat_menu');
             fetchData();
         } catch (err: any) {
             showToast(err?.response?.data?.message || 'Lưu thất bại!', 'error');
@@ -78,6 +81,7 @@ export default function MenuManagementPage() {
             setIsDeleting(true);
             await dishService.delete(deletingDish.id);
             showToast(`Đã xóa "${deletingDish.ten_mon}" thành công!`);
+            if (socket) socket.emit('cap_nhat_menu');
             setDeletingDish(null);
             fetchData();
         } catch (err: any) {

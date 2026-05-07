@@ -1,10 +1,7 @@
 const { MonAn, DanhMuc } = require("../models/index");
 const AppError = require("../utils/AppError");
 
-// ============================================================
-//  GET /api/mon-an
-//  Public – Lấy tất cả món ăn (kèm tên danh mục)
-// ============================================================
+
 exports.layTatCaMonAn = async (req, res, next) => {
     try {
         const danhSach = await MonAn.findAll({

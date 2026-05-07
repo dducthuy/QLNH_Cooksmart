@@ -2,7 +2,7 @@ const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  // Log lỗi ra terminal để Thụy dễ sửa (Debug)
+
   console.error('❌ Lỗi hệ thống:', err);
 
   // Xử lý các lỗi đặc thù của Sequelize (ví dụ: thiếu trường bắt buộc)

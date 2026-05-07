@@ -58,7 +58,7 @@ exports.taoHoaDon = async (req, res, next) => {
             // Cập nhật hóa đơn cũ
             const tongTienMoi = Number(hoadonActive.tong_tien) + tong_tien_them;
 
-            // Re-calculate discount if needed (simplified for now, just adding to total)
+
             await hoadonActive.update({ tong_tien: tongTienMoi }, { transaction: t });
             hoaDonKetQua = hoadonActive;
         } else {
@@ -115,7 +115,7 @@ exports.taoHoaDon = async (req, res, next) => {
 
         const io = req.app.get("socketio");
         if (io) {
-          
+
             // Bắn dữ liệu thẳng vào Room 'khu_vuc_bep' cho màn hình KDS
             io.to("khu_vuc_bep").emit("thong_bao_moi", {
                 id_hoa_don: hoaDonKetQua.id,
@@ -298,12 +298,22 @@ exports.layTatCaHoaDon = async (req, res, next) => {
 
         if (tu_ngay || den_ngay) {
             whereClause.thoi_gian_tao = {};
-            if (tu_ngay) whereClause.thoi_gian_tao[Op.gte] = new Date(tu_ngay);
+            if (tu_ngay) {
+                const fromDate = new Date(tu_ngay);
+                if (!isNaN(fromDate.getTime())) {
+                    whereClause.thoi_gian_tao[Op.gte] = fromDate;
+                }
+            }
             if (den_ngay) {
-                // cộng 1 ngày để bao trọn ngày kết thúc nếu truyền ngày ở định dạng YYYY-MM-DD
                 const toDate = new Date(den_ngay);
-                toDate.setHours(23, 59, 59, 999);
-                whereClause.thoi_gian_tao[Op.lte] = toDate;
+                if (!isNaN(toDate.getTime())) {
+                    toDate.setHours(23, 59, 59, 999);
+                    whereClause.thoi_gian_tao[Op.lte] = toDate;
+                }
+            }
+            // Nếu cả hai đều không hợp lệ, xóa thoi_gian_tao khỏi whereClause
+            if (Object.keys(whereClause.thoi_gian_tao).length === 0) {
+                delete whereClause.thoi_gian_tao;
             }
         }
 

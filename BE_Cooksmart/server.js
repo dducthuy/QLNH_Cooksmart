@@ -65,6 +65,11 @@ io.on("connection", (socket) => {
         io.emit("het_hang_thong_bao", data);
     });
 
+    socket.on("cap_nhat_menu", () => {
+        console.log("🔄 Cập nhật thực đơn...");
+        io.emit("cap_nhat_menu");
+    });
+
     socket.on("disconnect", () => {
         console.log("❌ Client ngắt kết nối:", socket.id);
 

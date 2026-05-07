@@ -161,14 +161,14 @@ export default function TableGrid() {
                                         onClick={() => handleTableClick(table)}
                                         className={`w-full flex flex-col items-center justify-center gap-1.5 aspect-square border-2 rounded-3xl transition-all active:scale-95 relative ${
                                             isSource ? 'border-amber-500 ring-4 ring-amber-100 bg-amber-50' :
-                                            isSelected ? 'border-[#d9a01e] bg-[#d9a01e]/5' : 
-                                            isOccupied ? 'border-blue-100 bg-blue-50/30' : 'border-gray-100 bg-white'
+                                            isSelected ? 'border-[#d9a01e] bg-[#d9a01e]/10 shadow-lg shadow-[#d9a01e]/20 ring-2 ring-[#d9a01e]/20' : 
+                                            isOccupied ? 'border-amber-100 bg-amber-50/30' : 'border-gray-100 bg-white'
                                         }`}
                                     >
-                                        <span className={`text-[24px] font-black ${isOccupied ? 'text-blue-600' : 'text-gray-400'}`}>
+                                        <span className={`text-[24px] font-black ${isOccupied ? 'text-[#d9a01e]' : 'text-gray-400'}`}>
                                             {table.so_ban.replace(/bàn\s/i, '')}
                                         </span>
-                                        <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full ${isOccupied ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full ${isOccupied ? 'bg-amber-100 text-[#d9a01e]' : 'bg-gray-100 text-gray-400'}`}>
                                             {getStatusText(table.trang_thai_ban)}
                                         </span>
                                     </button>
