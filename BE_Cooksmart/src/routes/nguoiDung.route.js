@@ -9,6 +9,9 @@ router.use(baoVe, phanQuyen("Admin"));
 // GET  /api/nguoi-dung              → Lấy danh sách (filter: ?vai_tro=&trang_thai=&q=)
 router.get("/", nguoiDungController.layTatCaNguoiDung);
 
+// GET  /api/nguoi-dung/online       → Lấy danh sách user đang online
+router.get("/online", nguoiDungController.layDanhSachOnline);
+
 // GET  /api/nguoi-dung/:id          → Lấy chi tiết một người dùng
 router.get("/:id", nguoiDungController.layNguoiDungTheoId);
 

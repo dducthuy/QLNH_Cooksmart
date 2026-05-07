@@ -10,8 +10,9 @@ import {
 import { banAnService } from '@/services/banAn.service';
 import { hoaDonService } from '@/services/hoaDon.service';
 import { BanAn } from '@/types/banAn';
+import { useSocket } from '@/context/SocketContext';
 
-// ─── Dummy dish service (public, không cần auth) ───────────────────────────
+
 async function fetchMonAn(): Promise<any[]> {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/mon-an`);
     const json = await res.json();
@@ -24,7 +25,19 @@ async function fetchDanhMuc(): Promise<any[]> {
     return json.data ?? [];
 }
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+async function fetchTableInfo(id: string): Promise<any> {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ban-an/${id}`);
+    const json = await res.json();
+    return json.data ?? null;
+}
+
+async function fetchActiveInvoice(id_ban: string): Promise<any> {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/hoa-don/khach-hang/ban/${id_ban}`);
+    const json = await res.json();
+    return json.data ?? null;
+}
+
+
 interface CartItem {
     id: string;
     ten_mon: string;
@@ -136,28 +149,54 @@ function OrderPageContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [activeOrder, setActiveOrder] = useState<any>(null);
+
+    const { socket } = useSocket();
 
     // ── Load data ──
-    useEffect(() => {
+    const loadData = useCallback(async () => {
         if (!tableId) { setIsLoading(false); return; }
-        const load = async () => {
-            try {
-                const [table, monAn, danhMuc] = await Promise.all([
-                    banAnService.getById(tableId),
-                    fetchMonAn(),
-                    fetchDanhMuc()
-                ]);
-                setTableInfo(table);
-                setMonAnList(monAn);
-                setDanhMucList(danhMuc);
-            } catch {
-                setError('Không thể tải dữ liệu. Vui lòng quét lại mã QR.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        load();
+        try {
+            const [table, monAn, danhMuc, order] = await Promise.all([
+                fetchTableInfo(tableId),
+                fetchMonAn(),
+                fetchDanhMuc(),
+                fetchActiveInvoice(tableId)
+            ]);
+            setTableInfo(table);
+            setMonAnList(monAn);
+            setDanhMucList(danhMuc);
+            setActiveOrder(order);
+        } catch {
+            setError('Không thể tải dữ liệu. Vui lòng quét lại mã QR.');
+        } finally {
+            setIsLoading(false);
+        }
     }, [tableId]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    useEffect(() => {
+        if (!socket || !tableId) return;
+
+        const handleMenuUpdate = () => {
+            fetchMonAn().then(setMonAnList).catch(console.error);
+        };
+
+        const handleOrderUpdate = () => {
+            fetchActiveInvoice(tableId).then(setActiveOrder).catch(console.error);
+        };
+
+        socket.on('cap_nhat_menu', handleMenuUpdate);
+        socket.on('trang_thai_mon_da_doi', handleOrderUpdate);
+
+        return () => {
+            socket.off('cap_nhat_menu', handleMenuUpdate);
+            socket.off('trang_thai_mon_da_doi', handleOrderUpdate);
+        };
+    }, [socket, tableId]);
 
     // ── Cart helpers ──
     const getQty = (id: string) => cart.find(c => c.id === id)?.so_luong ?? 0;
@@ -315,11 +354,10 @@ function OrderPageContent() {
                         <button
                             key={dm.id}
                             onClick={() => setSelectedDanhMuc(dm.id)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all shrink-0 ${
-                                selectedDanhMuc === dm.id
-                                    ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
-                                    : 'bg-white border border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600'
-                            }`}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all shrink-0 ${selectedDanhMuc === dm.id
+                                ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
+                                : 'bg-white border border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600'
+                                }`}
                         >
                             {dm.ten_danh_muc}
                         </button>
@@ -384,18 +422,50 @@ function OrderPageContent() {
 
                         {/* Cart items */}
                         <div className="flex-1 overflow-y-auto px-5 py-2">
-                            {cart.length === 0 ? (
+                            {/* Món đã gọi (nếu có) */}
+                            {activeOrder?.ChiTietHoaDons && activeOrder.ChiTietHoaDons.length > 0 && (
+                                <div className="mb-6">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-3 ml-1 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#d9a01e]"></div>
+                                        Món đã gọi ({activeOrder.ChiTietHoaDons.length})
+                                    </h3>
+                                    <div className="space-y-0">
+                                        {activeOrder.ChiTietHoaDons.map((item: any, index: number) => (
+                                            <div key={`active-${item.id}-${index}`} className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 opacity-80">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-gray-800 text-sm truncate">{item.MonAn?.ten_mon || item.Combo?.ten_combo}</p>
+                                                    <p className="text-gray-500 font-bold text-sm">{vnd(item.MonAn?.gia_tien || item.Combo?.gia_tien || 0)} <span className="text-xs font-black ml-1">x{item.so_luong}</span></p>
+                                                </div>
+                                                <div className="shrink-0">
+                                                    {/* Trạng thái món */}
+                                                    {item.trang_thai_mon === 'DangCho' && <span className="px-2 py-1 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black uppercase tracking-tight">Đang chờ</span>}
+                                                    {item.trang_thai_mon === 'DangNau' && <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black uppercase tracking-tight">Đang nấu</span>}
+                                                    {item.trang_thai_mon === 'DaXong' && <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black uppercase tracking-tight">Đã xong</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {cart.length === 0 && (!activeOrder || !activeOrder.ChiTietHoaDons || activeOrder.ChiTietHoaDons.length === 0) ? (
                                 <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
                                     <ShoppingCart size={36} className="text-gray-200" />
                                     <p className="text-sm text-gray-400 font-bold">Chưa có món nào</p>
                                 </div>
                             ) : (
                                 <div>
+                                    {cart.length > 0 && (
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 mb-3 ml-1 flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                            Món mới chọn ({cart.length})
+                                        </h3>
+                                    )}
                                     {cart.map(item => (
                                         <CartItemRow
                                             key={item.id}
                                             item={item}
-                                            onUpdate={(id, d) => d > 0 ? addToCart({ id, ten_mon: item.ten_mon, gia_tien: item.gia_tien }) : removeFromCart(id)}
+                                            onUpdate={(id, d) => d > 0 ? addToCart({ id, ten_mon: item.ten_mon, gia_tien: item.gia_tien, hinh_anh_mon: item.hinh_anh_mon, so_luong: 1 }) : removeFromCart(id)}
                                             onRemove={deleteFromCart}
                                         />
                                     ))}

@@ -18,8 +18,12 @@ router.patch("/noi-bo/:id/trang-thai", baoVe, phanQuyen("Admin", "PhucVu"), hoaD
 
 router.patch("/noi-bo/chi-tiet/:id/trang-thai", baoVe, phanQuyen("Admin", "PhucVu", "Bep"), hoaDonController.capNhatTrangThaiMon);
 
+router.post("/noi-bo/chuyen-ban", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.chuyenBan);
+router.post("/noi-bo/gop-ban", baoVe, phanQuyen("Admin", "PhucVu"), hoaDonController.gopBan);
+
 // 2. API cho Khách hàng (Quét mã QR)
 // Yêu cầu id_ban hợp lệ, không cần token (trống id_nhan_vien)
 router.post("/khach-hang", hoaDonController.taoHoaDonKhachHang);
+router.get("/khach-hang/ban/:id_ban", hoaDonController.layHoaDonKhachHang);
 
 module.exports = router;

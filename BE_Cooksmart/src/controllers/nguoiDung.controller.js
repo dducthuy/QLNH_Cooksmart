@@ -5,33 +5,29 @@ const { Op } = require("sequelize");
 
 // Các trường an toàn trả về (không bao giờ trả mat_khau)
 const SAFE_ATTRS = ["id", "ten_dang_nhap", "ho_ten", "vai_tro", "trang_thai"];
-const DS_VAI_TRO = ["Admin", "PhucVu", "Bep"];
+const DS_VAI_TRO = ["Admin", "ThuNgan", "PhucVu", "Bep"];
 
-// ============================================================
-//  GET /api/nguoi-dung
-//  Admin – Lấy danh sách tất cả người dùng (có tìm kiếm + filter)
-// ============================================================
+
 exports.layTatCaNguoiDung = async (req, res, next) => {
     try {
         const { vai_tro, trang_thai, q } = req.query;
 
         const where = {};
 
-        // Filter vai trò
+
         if (vai_tro && DS_VAI_TRO.includes(vai_tro)) {
             where.vai_tro = vai_tro;
         }
 
-        // Filter trạng thái (true / false)
         if (trang_thai !== undefined) {
             where.trang_thai = trang_thai === "true";
         }
 
-        // Tìm kiếm theo tên đăng nhập hoặc họ tên
+
         if (q) {
             where[Op.or] = [
                 { ten_dang_nhap: { [Op.like]: `%${q}%` } },
-                { ho_ten:        { [Op.like]: `%${q}%` } },
+                { ho_ten: { [Op.like]: `%${q}%` } },
             ];
         }
 
@@ -109,11 +105,11 @@ exports.taoNguoiDung = async (req, res, next) => {
             status: "success",
             message: `Đã tạo tài khoản "${nguoiDungMoi.ten_dang_nhap}" thành công!`,
             data: {
-                id:            nguoiDungMoi.id,
+                id: nguoiDungMoi.id,
                 ten_dang_nhap: nguoiDungMoi.ten_dang_nhap,
-                ho_ten:        nguoiDungMoi.ho_ten,
-                vai_tro:       nguoiDungMoi.vai_tro,
-                trang_thai:    nguoiDungMoi.trang_thai,
+                ho_ten: nguoiDungMoi.ho_ten,
+                vai_tro: nguoiDungMoi.vai_tro,
+                trang_thai: nguoiDungMoi.trang_thai,
             },
         });
     } catch (err) {
@@ -158,20 +154,20 @@ exports.capNhatNguoiDung = async (req, res, next) => {
 
         await nguoiDung.update({
             ten_dang_nhap: ten_dang_nhap !== undefined ? ten_dang_nhap.trim() : nguoiDung.ten_dang_nhap,
-            ho_ten:        ho_ten        !== undefined ? ho_ten.trim()        : nguoiDung.ho_ten,
-            vai_tro:       vai_tro       !== undefined ? vai_tro              : nguoiDung.vai_tro,
-            trang_thai:    trang_thai    !== undefined ? Boolean(trang_thai)  : nguoiDung.trang_thai,
+            ho_ten: ho_ten !== undefined ? ho_ten.trim() : nguoiDung.ho_ten,
+            vai_tro: vai_tro !== undefined ? vai_tro : nguoiDung.vai_tro,
+            trang_thai: trang_thai !== undefined ? Boolean(trang_thai) : nguoiDung.trang_thai,
         });
 
         res.status(200).json({
             status: "success",
             message: "Cập nhật thông tin người dùng thành công!",
             data: {
-                id:            nguoiDung.id,
+                id: nguoiDung.id,
                 ten_dang_nhap: nguoiDung.ten_dang_nhap,
-                ho_ten:        nguoiDung.ho_ten,
-                vai_tro:       nguoiDung.vai_tro,
-                trang_thai:    nguoiDung.trang_thai,
+                ho_ten: nguoiDung.ho_ten,
+                vai_tro: nguoiDung.vai_tro,
+                trang_thai: nguoiDung.trang_thai,
             },
         });
     } catch (err) {
@@ -262,6 +258,24 @@ exports.xoaNguoiDung = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             message: `Đã xóa tài khoản "${ten}" thành công!`,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ============================================================
+//  GET /api/nguoi-dung/online
+//  Admin – Lấy danh sách user ID đang online (real-time)
+// ============================================================
+exports.layDanhSachOnline = async (req, res, next) => {
+    try {
+        const onlineUsers = req.app.get("onlineUsers");
+        const onlineIds = onlineUsers ? Array.from(onlineUsers.keys()) : [];
+
+        res.status(200).json({
+            status: "success",
+            data: onlineIds,
         });
     } catch (err) {
         next(err);

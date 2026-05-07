@@ -25,6 +25,7 @@ export default function MenuManagementPage() {
     const [editingDish, setEditingDish] = useState<MonAn | null>(null);
     const [deletingDish, setDeletingDish] = useState<MonAn | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
 
@@ -53,6 +54,7 @@ export default function MenuManagementPage() {
 
     const handleSubmit = async (data: any) => {
         try {
+            setIsSubmitting(true);
             if (editingDish) {
                 await dishService.update(editingDish.id, data);
                 showToast(`Đã cập nhật "${data.ten_mon}" thành công!`);
@@ -65,6 +67,8 @@ export default function MenuManagementPage() {
         } catch (err: any) {
             showToast(err?.response?.data?.message || 'Lưu thất bại!', 'error');
             throw err;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -157,6 +161,7 @@ export default function MenuManagementPage() {
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-gray-100 bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest sticky top-0">
+                            <th className="px-6 py-4 w-12 text-center">STT</th>
                             <th className="px-6 py-4">Món Ăn</th>
                             <th className="px-6 py-4">Danh Mục</th>
                             <th className="px-6 py-4">Giá Tiền</th>
@@ -167,7 +172,7 @@ export default function MenuManagementPage() {
                     <tbody className="divide-y divide-gray-50">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-16 text-center">
+                                <td colSpan={6} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Loader2 size={36} className="animate-spin text-[#d9a01e]" />
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Đang tải...</p>
@@ -176,15 +181,18 @@ export default function MenuManagementPage() {
                             </tr>
                         ) : filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-16 text-center">
+                                <td colSpan={6} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <ChefHat size={40} className="text-gray-200" />
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Không tìm thấy món ăn</p>
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.map((dish) => (
+                        ) : filtered.map((dish, index) => (
                             <tr key={dish.id} className="group hover:bg-gray-50/80 transition-colors">
+                                <td className="px-6 py-4 text-center font-bold text-gray-400">
+                                    {index + 1}
+                                </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group-hover:border-[#d9a01e]/40 transition-colors shrink-0">
@@ -237,14 +245,15 @@ export default function MenuManagementPage() {
 
             {/* Modals */}
             {hasModal && (
-                <AdminModal onClose={() => { setIsFormOpen(false); setDeletingDish(null); }} maxWidth="max-w-2xl">
+                <AdminModal onClose={() => { setIsFormOpen(false); setDeletingDish(null); }} maxWidth={deletingDish ? 'max-w-sm' : 'max-w-2xl'}>
                     {isFormOpen && (
                         <DynamicForm
                             title={editingDish ? 'Chỉnh Sửa Món Ăn' : 'Thêm Món Ăn Mới'}
                             fields={formFields}
-                            initialData={editingDish}
+                            initialData={editingDish || { con_hang: true }}
                             onSubmit={handleSubmit}
                             onCancel={() => setIsFormOpen(false)}
+                            isLoading={isSubmitting}
                         />
                     )}
                     {deletingDish && (

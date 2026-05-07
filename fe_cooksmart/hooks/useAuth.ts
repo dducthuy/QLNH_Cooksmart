@@ -15,6 +15,9 @@ export function useAuth() {
     return {
         isAuthenticated: !!payload,
         userId: payload?.id ?? null,
+        tenDangNhap: payload?.ten_dang_nhap ?? null,
+        hoTen: payload?.ho_ten ?? null,
+        displayName: payload?.ho_ten || payload?.ten_dang_nhap || 'Người Dùng',
         vaiTro,
 
         // Kiểm tra quyền cụ thể

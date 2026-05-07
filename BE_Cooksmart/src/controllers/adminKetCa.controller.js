@@ -72,10 +72,7 @@ exports.layLichSuCa = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// [2] BÁO CÁO CHI TIẾT CA – GET /api/admin/shifts/:id/report
-//     Trả về thông tin ca + thống kê doanh thu từ bảng HoaDon
-// =======================================================
+
 exports.layBaoCaoChiTietCa = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -158,7 +155,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     tong_tien_mat: parseFloat(thongKe.tong_tien_mat) || 0,
                     tong_chuyen_khoan: parseFloat(thongKe.tong_chuyen_khoan) || 0,
                     tong_chi_tieu: tongTienChi,
-                    // Tiền mặt lý thuyết còn lại trong két
+      
                     tien_mat_ket_ly_thuyet:
                         Number(caLamViec.tien_dau_ca) +
                         (parseFloat(thongKe.tong_tien_mat) || 0) -
@@ -171,10 +168,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// [3] KIỂM DUYỆT CA – PUT /api/admin/shifts/:id/audit
-//     Admin xác nhận đã kiểm tra và ghi chú xử lý chênh lệch
-// =======================================================
+
 exports.kiemDuyetCa = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -195,7 +189,7 @@ exports.kiemDuyetCa = async (req, res, next) => {
             );
         }
 
-        // Cập nhật trạng thái kiểm duyệt và ghi chú của Admin
+
         await caLamViec.update({
             da_kiem_duyet: true,
             ghi_chu_kiem_duyet: ghi_chu_kiem_duyet || null,

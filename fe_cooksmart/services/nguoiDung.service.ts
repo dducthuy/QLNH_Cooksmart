@@ -44,4 +44,9 @@ export const nguoiDungService = {
     async delete(id: string): Promise<void> {
         await http.delete(`/nguoi-dung/${id}`);
     },
+
+    async getOnlineUsers(): Promise<string[]> {
+        const response = await http.get<{ status: string; data: string[] }>('/nguoi-dung/online');
+        return response.data.data;
+    },
 };

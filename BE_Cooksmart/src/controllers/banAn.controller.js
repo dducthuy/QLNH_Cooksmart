@@ -4,10 +4,7 @@ const QRCode = require("qrcode");
 
 const TRANG_THAI_HOP_LE = ["Trong", "DangPhucVu", "DatTruoc"];
 
-// ============================================================
-//  GET /api/ban-an
-//  Public – Lấy tất cả bàn ăn
-// ============================================================
+
 exports.layTatCaBanAn = async (req, res, next) => {
     try {
         const danhSach = await BanAn.findAll({
@@ -25,10 +22,7 @@ exports.layTatCaBanAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/ban-an/:id
-//  Public – Lấy chi tiết một bàn ăn
-// ============================================================
+
 exports.layBanAnTheoId = async (req, res, next) => {
     try {
         const banAn = await BanAn.findByPk(req.params.id);
@@ -42,10 +36,6 @@ exports.layBanAnTheoId = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/ban-an
-//  Admin only – Thêm bàn ăn mới
-// ============================================================
 exports.taoBanAn = async (req, res, next) => {
     try {
         const { so_ban, vi_tri, ma_qr_code, trang_thai_ban } = req.body;
@@ -82,10 +72,7 @@ exports.taoBanAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/ban-an/:id
-//  Admin only – Cập nhật thông tin bàn ăn
-// ============================================================
+
 exports.capNhatBanAn = async (req, res, next) => {
     try {
         const banAn = await BanAn.findByPk(req.params.id);
@@ -115,7 +102,7 @@ exports.capNhatBanAn = async (req, res, next) => {
             trang_thai_ban: trang_thai_ban !== undefined ? trang_thai_ban   : banAn.trang_thai_ban,
         });
 
-        // --- BẮT ĐẦU CODE MỚI THÊM ---
+   
         if (trang_thai_ban !== undefined) {
              const io = req.app.get("socketio");
              if (io) {
@@ -125,7 +112,7 @@ exports.capNhatBanAn = async (req, res, next) => {
                  });
              }
         }
-        // --- KẾT THÚC CODE MỚI THÊM ---
+
 
         res.status(200).json({
             status: "success",
@@ -138,10 +125,7 @@ exports.capNhatBanAn = async (req, res, next) => {
 };
 
 
-// ============================================================
-//  GET /api/ban-an/:id/qr
-//  Public – Sinh mã QR dạng base64 cho một bàn
-// ============================================================
+
 exports.sinhMaQR = async (req, res, next) => {
     try {
         const banAn = await BanAn.findByPk(req.params.id);

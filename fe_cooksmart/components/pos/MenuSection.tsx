@@ -7,9 +7,11 @@ import { categoryService } from '@/services/category.service';
 import { MonAn } from '@/types/monAn';
 import { DanhMuc } from '@/types/danhMuc';
 import { usePos } from '@/context/PosContext';
+import { useSocket } from '@/context/SocketContext';
 
 export default function MenuSection() {
     const { addToCart } = usePos();
+    const { socket } = useSocket();
     const [activeTab, setActiveTab] = useState('Tất Cả');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -35,7 +37,15 @@ export default function MenuSection() {
         };
 
         fetchData();
-    }, []);
+
+        // Lắng nghe sự kiện cập nhật menu từ backend
+        if (socket) {
+            socket.on('cap_nhat_menu', fetchData);
+            return () => {
+                socket.off('cap_nhat_menu', fetchData);
+            };
+        }
+    }, [socket]);
 
     const categoryNames = ['Tất Cả', ...categories.map(c => c.ten_danh_muc)];
 
@@ -103,28 +113,37 @@ export default function MenuSection() {
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filtered.map(item => (
-                            <div key={item.id} className="bg-white p-3 rounded-3xl border border-gray-100 hover:border-[#d9a01e]/50 hover:shadow-lg transition-all group flex flex-col cursor-pointer active:scale-95 border-b-4 hover:border-b-[#d9a01e]">
-                                <div className="aspect-square bg-gray-50 rounded-2xl mb-3 overflow-hidden">
+                            <div key={item.id} className={`bg-white p-3 rounded-3xl border border-gray-100 hover:border-[#d9a01e]/50 transition-all group flex flex-col active:scale-95 border-b-4 hover:border-b-[#d9a01e] relative ${!item.con_hang ? 'opacity-70 pointer-events-none' : 'cursor-pointer hover:shadow-lg'}`}>
+                                <div className="aspect-square bg-gray-50 rounded-2xl mb-3 overflow-hidden relative">
                                     <img
                                         src={item.hinh_anh_mon || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.ten_mon)}&background=random&color=fff&size=100`}
                                         alt={item.ten_mon}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     />
+                                    {!item.con_hang && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+                                            <span className="bg-black/80 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">Hết Hàng</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <h3 className="font-bold text-gray-800 text-sm leading-tight px-1 line-clamp-2">{item.ten_mon}</h3>
                                 <div className="mt-auto pt-3 px-1 flex items-center justify-between">
-                                    <span className="font-black text-[#d9a01e] tracking-tight">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia_tien)}</span>
-                                    <button
-                                        onClick={() => addToCart({
-                                            id_mon_an: item.id,
-                                            ten_mon: item.ten_mon,
-                                            gia_tien: item.gia_tien,
-                                            hinh_anh_mon: item.hinh_anh_mon,
-                                            so_luong: 1
-                                        })}
-                                        className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#d9a01e] border border-gray-100 group-hover:border-[#d9a01e] group-hover:text-white flex items-center justify-center transition-all bg-white shadow-sm">
-                                        <Plus size={16} />
-                                    </button>
+                                    <span className={`font-black tracking-tight ${!item.con_hang ? 'text-gray-400' : 'text-[#d9a01e]'}`}>
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia_tien)}
+                                    </span>
+                                    {item.con_hang && (
+                                        <button
+                                            onClick={() => addToCart({
+                                                id_mon_an: item.id,
+                                                ten_mon: item.ten_mon,
+                                                gia_tien: item.gia_tien,
+                                                hinh_anh_mon: item.hinh_anh_mon,
+                                                so_luong: 1
+                                            })}
+                                            className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#d9a01e] border border-gray-100 group-hover:border-[#d9a01e] group-hover:text-white flex items-center justify-center transition-all shadow-sm">
+                                            <Plus size={16} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}

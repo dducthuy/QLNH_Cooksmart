@@ -1,35 +1,41 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, CreditCard, Plus, Clock, Loader2 } from 'lucide-react';
+import { X, ShoppingBag, CreditCard, Plus, Clock, Loader2, ArrowRightLeft, Merge } from 'lucide-react';
 import { hoaDonService } from '@/services/hoaDon.service';
+import { banAnService } from '@/services/banAn.service';
 import { HoaDon } from '@/types/hoaDon';
 
 interface TableOrderModalProps {
     isOpen: boolean;
     onClose: () => void;
     table: any; // { id, so_ban, status }
+    onRefresh?: () => void;
 }
 
-export default function TableOrderModal({ isOpen, onClose, table }: TableOrderModalProps) {
+export default function TableOrderModal({ isOpen, onClose, table, onRefresh }: TableOrderModalProps) {
     const [invoice, setInvoice] = useState<HoaDon | null>(null);
     const [loading, setLoading] = useState(false);
+    const [processing, setProcessing] = useState(false);
+
+    // Chuyển/Gộp mode
+    const [mode, setMode] = useState<'normal' | 'transfer' | 'merge'>('normal');
+    const [otherTables, setOtherTables] = useState<any[]>([]);
 
     useEffect(() => {
         if (!isOpen || !table || table.status === 'Trống') {
             setInvoice(null);
+            setMode('normal');
             return;
         }
 
         const fetchOrder = async () => {
             setLoading(true);
             try {
-                // Fetch invoices for this table
                 const invoices = await hoaDonService.getAll({ id_ban: table.id });
                 let active = invoices.find(i => i.trang_thai_hd === 'DangPhucVu' || i.trang_thai_hd === 'ChoXuLy');
                 
                 if (active) {
-                    // Fetch full detail with items
                     const details = await hoaDonService.getById(active.id);
                     setInvoice(details);
                 } else {
@@ -45,9 +51,57 @@ export default function TableOrderModal({ isOpen, onClose, table }: TableOrderMo
         fetchOrder();
     }, [isOpen, table]);
 
+    const handleFetchOtherTables = async (targetMode: 'transfer' | 'merge') => {
+        try {
+            setLoading(true);
+            const data = await banAnService.getAll();
+            // Lọc bàn: Chuyển thì lấy bàn Trống, Gộp thì lấy bàn Đang phục vụ
+            const filtered = data.filter((b: any) => {
+                if (b.id === table.id) return false;
+                if (targetMode === 'transfer') return b.trang_thai_ban === 'Trong';
+                if (targetMode === 'merge') return b.trang_thai_ban === 'DangPhucVu' || b.trang_thai_ban === 'ChoThanhToan';
+                return true;
+            });
+            setOtherTables(filtered);
+            setMode(targetMode);
+        } catch (err) {
+            alert("Lỗi tải danh sách bàn");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAction = async (targetTable: any) => {
+        if (!invoice) return;
+        setProcessing(true);
+        try {
+            if (mode === 'transfer') {
+                await hoaDonService.chuyenBan(invoice.id, targetTable.id);
+                alert(`Đã chuyển từ ${table.so_ban} sang ${targetTable.so_ban}`);
+            } else if (mode === 'merge') {
+                const targetInvoices = await hoaDonService.getAll({ id_ban: targetTable.id });
+                const targetActive = targetInvoices.find(i => i.trang_thai_hd === 'DangPhucVu' || i.trang_thai_hd === 'ChoXuLy');
+                if (!targetActive) {
+                    alert("Bàn đích không có hóa đơn đang hoạt động!");
+                    return;
+                }
+                await hoaDonService.gopBan(invoice.id, targetActive.id);
+                alert(`Đã gộp ${table.so_ban} vào ${targetTable.so_ban}`);
+            }
+            onClose();
+            if (onRefresh) onRefresh();
+            else window.location.reload();
+        } catch (err: any) {
+            alert(err?.response?.data?.message || "Lỗi thực hiện thao tác");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     if (!isOpen || !table) return null;
 
     const hasOrder = table.status !== 'Trống';
+    console.log("🔍 Kiểm tra bàn:", table?.so_ban, "Trạng thái:", table?.status, "Có đơn:", hasOrder);
     
     let total = 0;
     let orderItems: any[] = [];

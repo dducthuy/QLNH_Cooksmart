@@ -20,24 +20,38 @@ const io = new Server(server, {
 
 app.set("socketio", io);
 
+// ===================== THEO DÕI USER ONLINE =====================
+// Map: userId → Set<socketId>
+const onlineUsers = new Map();
+app.set("onlineUsers", onlineUsers);
+
 // 3. Xử lý sự kiện Socket.io Real-time
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
 
+    // --- Đăng ký user online ---
+    socket.on("dang_nhap", (userId) => {
+        if (!userId) return;
+        socket.userId = userId;
+
+        if (!onlineUsers.has(userId)) {
+            onlineUsers.set(userId, new Set());
+        }
+        onlineUsers.get(userId).add(socket.id);
+
+        // Phát sự kiện cho tất cả client biết user này vừa online
+        io.emit("user_online", { userId });
+        console.log(`🟢 User ${userId} online (${onlineUsers.get(userId).size} kết nối)`);
+    });
 
     socket.on("join_room_bep", (room_name = "khu_vuc_bep") => {
         socket.join(room_name);
         console.log(`👨‍🍳 Màn hình Bếp (${socket.id}) đã tham gia room: ${room_name}`);
     });
-    // --- KẾT THÚC CODE MỚI THÊM ---
 
     socket.on("khach_dat_mon", (data) => {
         console.log("🔔 Đơn mới từ bàn:", data.id_ban);
-        // --- BẮT ĐẦU CODE MỚI THÊM ---
         io.to("khu_vuc_bep").emit("thong_bao_moi", data);
-        // --- KẾT THÚC CODE MỚI THÊM ---
-
-        // Code cũ giữ nguyên (bạn có thể xóa dòng io.emit này nếu chỉ muốn gửi riêng cho Bếp)
         io.emit("thong_bao_moi", data);
     });
 
@@ -53,6 +67,18 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("❌ Client ngắt kết nối:", socket.id);
+
+
+        const userId = socket.userId;
+        if (userId && onlineUsers.has(userId)) {
+            onlineUsers.get(userId).delete(socket.id);
+            if (onlineUsers.get(userId).size === 0) {
+                onlineUsers.delete(userId);
+
+                io.emit("user_offline", { userId });
+                console.log(`🔴 User ${userId} offline`);
+            }
+        }
     });
 });
 

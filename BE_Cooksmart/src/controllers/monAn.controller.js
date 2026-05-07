@@ -88,6 +88,9 @@ exports.taoMonAn = async (req, res, next) => {
             mo_ta_ai: mo_ta_ai || null,
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_menu");
+
         res.status(201).json({
             status: "success",
             message: `Đã thêm món "${monAnMoi.ten_mon}" thành công!`,
@@ -137,6 +140,9 @@ exports.capNhatMonAn = async (req, res, next) => {
             con_hang:     con_hang     !== undefined ? con_hang           : monAn.con_hang,
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_menu");
+
         res.status(200).json({
             status: "success",
             message: "Cập nhật món ăn thành công!",
@@ -160,6 +166,9 @@ exports.xoaMonAn = async (req, res, next) => {
 
         const ten = monAn.ten_mon;
         await monAn.destroy();
+
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_menu");
 
         res.status(200).json({
             status: "success",

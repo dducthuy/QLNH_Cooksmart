@@ -7,16 +7,17 @@ import { hoaDonService } from '@/services/hoaDon.service';
 import PaymentModal from './PaymentModal';
 
 export default function OrderCart() {
-    const { 
-        selectedTable, 
-        cart, 
-        updateQuantity, 
-        removeFromCart, 
-        clearCart, 
-        activeOrder, 
-        isLoadingOrder, 
+    const {
+        selectedTable,
+        cart,
+        updateQuantity,
+        removeFromCart,
+        clearCart,
+        activeOrder,
+        isLoadingOrder,
         refreshActiveOrder,
-        hasActiveShift
+        hasActiveShift,
+        playNotificationSound
     } = usePos();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -46,13 +47,13 @@ export default function OrderCart() {
                     ghi_chu: item.ghi_chu
                 }))
             };
-            
+
             await hoaDonService.createNoiBo(payload);
-            
-            alert(`Gửi món thành công cho bàn ${selectedTable.so_ban}!`);
+
+            playNotificationSound(); // 🔔 Phát tiếng khi gửi bếp thành công
             clearCart();
-            await refreshActiveOrder(); // Tải lại đơn hàng để hiển thị món mới vừa gửi
-            
+            await refreshActiveOrder();
+
         } catch (error: any) {
             console.error("Lỗi gửi bếp:", error);
             alert(error.response?.data?.message || "Có lỗi xảy ra khi gửi đơn xuống bếp!");
@@ -145,11 +146,11 @@ export default function OrderCart() {
                                         <div key={`cart-${item.id_mon_an}-${index}`} className="p-3 bg-blue-50/30 rounded-2xl border border-blue-100/50 flex flex-col gap-2 group shadow-sm ring-1 ring-blue-500/5">
                                             <div className="flex justify-between items-start">
                                                 <h4 className="font-bold text-gray-800 text-base leading-tight flex-1 pr-2">{item.ten_mon}</h4>
-                                                <button 
+                                                <button
                                                     onClick={() => removeFromCart(item.id_mon_an)}
                                                     className="text-gray-300 hover:text-red-500 transition-colors p-1 bg-white rounded-lg border border-gray-100 shadow-sm"
                                                 >
-                                                    <Trash2 size={12}/>
+                                                    <Trash2 size={12} />
                                                 </button>
                                             </div>
                                             <p className="text-[#d9a01e] font-black text-sm">
@@ -158,22 +159,22 @@ export default function OrderCart() {
                                             {item.ghi_chu && (
                                                 <p className="text-xs text-gray-400 italic font-medium mt-0.5">Ghi chú: {item.ghi_chu}</p>
                                             )}
-                                            
+
                                             <div className="flex justify-between items-center mt-1 pt-2 border-t border-blue-100 border-dashed">
                                                 <span className="text-xs uppercase font-bold text-gray-400">SL:</span>
                                                 <div className="flex items-center gap-3 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
-                                                    <button 
+                                                    <button
                                                         onClick={() => updateQuantity(item.id_mon_an, -1)}
                                                         className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#d9a01e] transition-colors rounded-lg"
                                                     >
-                                                        <Minus size={14}/>
+                                                        <Minus size={14} />
                                                     </button>
                                                     <span className="text-sm font-black w-4 text-center text-gray-800">{item.so_luong}</span>
-                                                    <button 
+                                                    <button
                                                         onClick={() => updateQuantity(item.id_mon_an, 1)}
                                                         className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#d9a01e] transition-colors rounded-lg"
                                                     >
-                                                        <Plus size={14}/>
+                                                        <Plus size={14} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -210,26 +211,43 @@ export default function OrderCart() {
 
                 {/* Big Action Buttons */}
                 <div className="flex gap-2">
-                    <button 
-                        onClick={() => setIsPaymentModalOpen(true)}
-                        className="w-[40%] py-4 rounded-2xl font-black uppercase text-xs tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50" 
-                        disabled={isSubmitting || !selectedTable || !activeOrder || cart.length > 0 || !hasActiveShift}
-                    >
-                        <CreditCard size={18} /> <span className="hidden xl:inline">Thanh Toán</span>
-                    </button>
-                    <button 
+                    {/* Nút Thanh Toán: chỉ bật khi TẤT CẢ món đã xong */}
+                    {(() => {
+                        const items = activeOrder?.ChiTietHoaDons || [];
+                        const hasItems = items.length > 0;
+                        const allDone = hasItems && items.every((i: any) => i.trang_thai_mon === 'DaXong');
+                        const canPay = !isSubmitting && !!selectedTable && !!activeOrder && cart.length === 0 && hasActiveShift && allDone;
+                        
+                        let title = '';
+                        if (!activeOrder) title = 'Chưa có đơn';
+                        else if (cart.length > 0) title = 'Vui lòng gửi món mới xuống bếp trước khi thanh toán';
+                        else if (!hasItems) title = 'Không có món nào trong đơn';
+                        else if (!allDone) title = 'Chờ bếp hoàn thành tất cả món mới có thể thanh toán';
+                        
+                        return (
+                            <button
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                title={title}
+                                className="w-[40%] py-4 rounded-2xl font-black uppercase text-xs tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={!canPay}
+                            >
+                                <CreditCard size={18} /> <span className="hidden xl:inline">Thanh Toán</span>
+                            </button>
+                        );
+                    })()}
+                    <button
                         onClick={handleGuiBep}
                         disabled={isSubmitting || !selectedTable || cart.length === 0}
                         className="flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                        {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />} 
+                        {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                         {isSubmitting ? 'Đang gửi...' : 'Gửi Bếp'}
                     </button>
                 </div>
             </div>
 
             {/* Payment Modal */}
-            <PaymentModal 
+            <PaymentModal
                 isOpen={isPaymentModalOpen}
                 onClose={() => setIsPaymentModalOpen(false)}
                 totalAmount={total - (activeOrder?.giam_gia || 0)}

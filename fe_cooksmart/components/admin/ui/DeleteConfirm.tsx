@@ -3,9 +3,9 @@
 import { Trash2, Loader2 } from 'lucide-react';
 
 interface AdminDeleteConfirmProps {
-    /** Tên đối tượng bị xóa, VD: 'Bàn B01', 'admin01', 'Bún Bò Huế' */
+
     itemName: string;
-    /** Tiền tố trước tên, VD: 'món', 'tài khoản', 'bàn' */
+
     itemType?: string;
     onConfirm: () => void;
     onCancel: () => void;

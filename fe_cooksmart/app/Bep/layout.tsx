@@ -1,10 +1,12 @@
 'use client';
 
 import AdminGuard from '@/components/admin/layout/Guard';
+import { SocketProvider } from '@/context/SocketContext';
 
 export default function KitchenLayout({ children }: { children: React.ReactNode }) {
     return (
         <AdminGuard allowedRoles={['Admin', 'Bep']}>
+          <SocketProvider>
            
             <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#111827] text-gray-100">
                 <main className="flex-1 overflow-hidden flex">
@@ -27,6 +29,7 @@ export default function KitchenLayout({ children }: { children: React.ReactNode 
                     background: rgba(255, 255, 255, 0.2);
                 }
             `}</style>
+          </SocketProvider>
         </AdminGuard>
     );
 }

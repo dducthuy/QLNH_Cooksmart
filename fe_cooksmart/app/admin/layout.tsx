@@ -3,6 +3,7 @@
 import AdminGuard from '@/components/admin/layout/Guard';
 import AdminSidebar from '@/components/admin/layout/Sidebar';
 import AdminHeader from '@/components/admin/layout/Header';
+import { SocketProvider } from '@/context/SocketContext';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
@@ -43,6 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <AdminGuard>
+          <SocketProvider>
             <div className="flex h-screen bg-[#f5f6fa] text-gray-800">
                 {/* Overlay for mobile */}
                 {isSidebarOpen && (
@@ -101,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     background: #d9a01e80;
                 }
             `}</style>
+          </SocketProvider>
         </AdminGuard>
     );
 }

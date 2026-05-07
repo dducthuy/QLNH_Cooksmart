@@ -312,6 +312,7 @@ export default function OrderManagementPage() {
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-gray-100 bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest sticky top-0">
+                            <th className="px-6 py-4 w-12 text-center">STT</th>
                             <th className="px-6 py-4">Bàn / ID Đơn</th>
                             <th className="px-6 py-4">Thời Gian Tạo</th>
                             <th className="px-6 py-4">Nhân Viên</th>
@@ -323,7 +324,7 @@ export default function OrderManagementPage() {
                     <tbody className="divide-y divide-gray-50">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-16 text-center">
+                                <td colSpan={7} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Loader2 size={36} className="animate-spin text-[#d9a01e]" />
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Đang tải...</p>
@@ -332,17 +333,20 @@ export default function OrderManagementPage() {
                             </tr>
                         ) : filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-16 text-center">
+                                <td colSpan={7} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <CalendarCheck size={40} className="text-gray-200" />
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Không có đơn hàng nào</p>
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.map((order) => {
+                        ) : filtered.map((order, index) => {
                             const statusCfg = STATUS_CONFIG[order.trang_thai_hd];
                             return (
                                 <tr key={order.id} className="group hover:bg-gray-50/80 transition-colors">
+                                    <td className="px-6 py-4 text-center font-bold text-gray-400">
+                                        {index + 1}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-gray-800 group-hover:text-[#d9a01e] transition-colors">

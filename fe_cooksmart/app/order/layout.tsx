@@ -5,10 +5,14 @@ export const metadata: Metadata = {
     description: 'Chọn món yêu thích và đặt hàng ngay tại bàn của bạn.',
 };
 
+import { SocketProvider } from '@/context/SocketContext';
+
 export default function OrderLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="min-h-screen bg-[#fdf6ec]">
-            {children}
-        </div>
+        <SocketProvider>
+            <div className="min-h-screen bg-[#fdf6ec]">
+                {children}
+            </div>
+        </SocketProvider>
     );
 }

@@ -1,4 +1,4 @@
-const { KetCa, HoaDon, ChiTieuCa } = require("../models");
+const { KetCa, HoaDon, ChiTieuCa, NguoiDung } = require("../models");
 const AppError = require("../utils/AppError");
 const { Op } = require("sequelize");
 
@@ -34,6 +34,12 @@ exports.moCa = async (req, res, next) => {
             message: "Mở ca làm việc thành công",
             data: caMoi,
         });
+
+        // Phát socket để các máy POS khác cập nhật trạng thái ca
+        const io = req.app.get("socketio");
+        if (io) {
+            io.emit("cap_nhat_ca", { status: "OPEN", ca: caMoi });
+        }
     } catch (error) {
         next(error);
     }
@@ -46,12 +52,20 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
     try {
         const id_nhan_vien = req.nguoiDung.id;
 
+        const includeNguoiDung = [
+            {
+                model: NguoiDung,
+                attributes: ["id", "ho_ten", "ten_dang_nhap", "vai_tro"],
+            },
+        ];
+
         // 1. Tìm ca đang chạy của nhân viên này
         let caHienTai = await KetCa.findOne({
             where: {
                 id_nhan_vien,
                 trang_thai_ca: "DangChay",
             },
+            include: includeNguoiDung,
         });
 
         // 1.2 Nếu không có ca riêng, tìm ca đang chạy mới nhất của hệ thống (Cho phép Phục vụ dùng chung ca với Thu ngân)
@@ -60,6 +74,7 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
                 where: {
                     trang_thai_ca: "DangChay",
                 },
+                include: includeNguoiDung,
                 order: [['thoi_gian_bat_dau', 'DESC']]
             });
         }
@@ -177,6 +192,12 @@ exports.chotCa = async (req, res, next) => {
             message: "Chốt ca làm việc thành công",
             data: caLamViec,
         });
+
+        // Phát socket thông báo ca đã đóng
+        const io = req.app.get("socketio");
+        if (io) {
+            io.emit("cap_nhat_ca", { status: "CLOSED", ca: caLamViec });
+        }
     } catch (error) {
         next(error);
     }

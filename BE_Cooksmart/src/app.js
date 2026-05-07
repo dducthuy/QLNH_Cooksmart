@@ -16,6 +16,7 @@ const khoRoutes        = require("./routes/kho.route");
 const hoaDonRoutes     = require("./routes/hoaDon.route");
 const ketCaRoutes      = require("./routes/ketCa.route");
 const adminKetCaRoutes = require("./routes/adminKetCa.route");
+const dashboardRoutes  = require("./routes/dashboard.routes");
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/kho",              khoRoutes);
 app.use("/api/hoa-don",          hoaDonRoutes);
 app.use("/api/shifts",           ketCaRoutes);
 app.use("/api/admin/shifts",     adminKetCaRoutes);
+app.use("/api/dashboard",        dashboardRoutes);
 
 app.all("/{*path}", (req, res, next) => {
     next(new AppError(`Không tìm thấy đường dẫn: ${req.originalUrl}`, 404));

@@ -7,7 +7,7 @@ import { Camera, Loader2, Save, X, CheckCircle2 } from 'lucide-react';
 export interface FormField {
     key: string;
     label: string;
-    type: 'text' | 'number' | 'image' | 'select' | 'textarea' | 'checkbox';
+    type: 'text' | 'number' | 'image' | 'select' | 'textarea' | 'checkbox' | 'password';
     placeholder?: string;
     required?: boolean;
     options?: { label: string; value: any }[]; // Cho trường 'select'
@@ -104,6 +104,19 @@ export default function DynamicForm({ title, fields, initialData, onSubmit, onCa
                                     value={formData[field.key] || ''}
                                     onChange={(e) => handleChange(field.key, e.target.value)}
                                     className={inputBase}
+                                />
+                            )}
+
+                            {/* Password Input */}
+                            {field.type === 'password' && (
+                                <input
+                                    type="password"
+                                    required={field.required}
+                                    placeholder={field.placeholder}
+                                    value={formData[field.key] || ''}
+                                    onChange={(e) => handleChange(field.key, e.target.value)}
+                                    className={inputBase}
+                                    minLength={6}
                                 />
                             )}
 

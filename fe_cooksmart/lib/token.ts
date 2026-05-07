@@ -3,11 +3,11 @@ import { VaiTro } from '@/types/auth';
 const TOKEN_KEY = 'accessToken';
 const MAX_AGE = 7 * 24 * 60 * 60; // 7 ngày (giây)
 
-// ========================
-// KIỂU DỮ LIỆU PAYLOAD
-// ========================
+
 export interface TokenPayload {
     id: string;
+    ten_dang_nhap: string;
+    ho_ten: string | null;
     vai_tro: VaiTro;
     iat: number;
     exp: number;
@@ -43,9 +43,22 @@ export const removeToken = (): void => {
 export const decodeToken = (token: string): TokenPayload | null => {
     try {
         const base64Payload = token.split('.')[1];
-        const jsonPayload = atob(base64Payload.replace(/-/g, '+').replace(/_/g, '/'));
+        if (!base64Payload) return null;
+
+        // Chuyển từ base64 sang chuỗi byte
+        const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Giải mã UTF-8 (Fix lỗi font tiếng Việt)
+        const jsonPayload = new TextDecoder().decode(bytes);
+
         return JSON.parse(jsonPayload) as TokenPayload;
-    } catch {
+    } catch (error) {
+        console.error('Lỗi giải mã token:', error);
         return null;
     }
 };

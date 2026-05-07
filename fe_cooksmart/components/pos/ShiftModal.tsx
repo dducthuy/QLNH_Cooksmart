@@ -162,7 +162,11 @@ export default function ShiftModal({ isOpen, onClose, mode, currentShiftData, on
                             </div>
                             <div>
                                 <h2 className="text-white font-black text-lg uppercase tracking-widest">Báo Cáo Tạm Tính & Chốt Ca</h2>
-                                <p className="text-gray-400 text-xs font-mono mt-1">Ca mở lúc: {new Date(currentShiftData.ca_lam_viec.thoi_gian_bat_dau).toLocaleString('vi-VN')}</p>
+                                <p className="text-gray-400 text-xs font-mono mt-1">
+                                    Nhân viên: <span className="text-amber-400 font-bold">{currentShiftData.ca_lam_viec.NguoiDung?.ho_ten || currentShiftData.ca_lam_viec.NguoiDung?.ten_dang_nhap || 'N/A'}</span>
+                                    <span className="mx-2">|</span>
+                                    Mở lúc: {new Date(currentShiftData.ca_lam_viec.thoi_gian_bat_dau).toLocaleString('vi-VN')}
+                                </p>
                             </div>
                         </div>
                         <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-2"><X size={24} /></button>

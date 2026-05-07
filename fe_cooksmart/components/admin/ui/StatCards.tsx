@@ -1,8 +1,10 @@
 'use client';
 
+import React from 'react';
+
 export interface StatItem {
     label: string;
-    value: number;
+    value: number | string | React.ReactNode;
     color: string;   // Tailwind text color, e.g. 'text-gray-800'
     bg: string;      // Tailwind bg color, e.g. 'bg-white'
     border: string;  // Tailwind border color, e.g. 'border-gray-100'

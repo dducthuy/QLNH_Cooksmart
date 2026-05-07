@@ -37,6 +37,8 @@ exports.dangNhap = async (req, res, next) => {
 
         const token = taoToken({
             id: nguoiDung.id,
+            ten_dang_nhap: nguoiDung.ten_dang_nhap,
+            ho_ten: nguoiDung.ho_ten,
             vai_tro: nguoiDung.vai_tro,
         });
 

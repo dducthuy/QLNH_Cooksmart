@@ -40,5 +40,13 @@ export const hoaDonService = {
     async createKhachHang(data: TaoHoaDonKhachHangBody): Promise<TaoHoaDonKhachHangResponse> {
         const response = await http.post<TaoHoaDonKhachHangResponse>('/hoa-don/khach-hang', data);
         return response.data;
+    },
+
+    async chuyenBan(id_hoa_don: string, id_ban_moi: string): Promise<void> {
+        await http.post('/hoa-don/noi-bo/chuyen-ban', { id_hoa_don, id_ban_moi });
+    },
+
+    async gopBan(id_hoa_don_nguon: string, id_hoa_don_dich: string): Promise<void> {
+        await http.post('/hoa-don/noi-bo/gop-ban', { id_hoa_don_nguon, id_hoa_don_dich });
     }
 };

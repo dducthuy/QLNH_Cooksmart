@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { HoaDon } from '@/types/hoaDon';
 import { hoaDonService } from '@/services/hoaDon.service';
-import { io } from 'socket.io-client';
+import { ketCaService } from '@/services/ketCa.service';
+import { useSocket } from './SocketContext';
 
 export interface CartItem {
   id_mon_an: string;
@@ -30,6 +31,25 @@ interface PosContextType {
   currentShift: any | null;
   setCurrentShift: (shift: any | null) => void;
   hasActiveShift: boolean;
+  refreshShiftStatus: () => Promise<void>;
+  isInitialShiftCheckDone: boolean;
+  // Modal control
+  isShiftModalOpen: boolean;
+  setIsShiftModalOpen: (open: boolean) => void;
+  shiftMode: 'OPEN' | 'CLOSE';
+  setShiftMode: (mode: 'OPEN' | 'CLOSE') => void;
+  // Pending orders
+  pendingOrdersCount: number;
+  setPendingOrdersCount: (count: number) => void;
+  isPendingOrdersOpen: boolean;
+  setIsPendingOrdersOpen: (open: boolean) => void;
+  // Notifications
+  notifications: any[];
+  addNotification: (noti: any) => void;
+  removeNotification: (id: number) => void;
+  clearNotifications: () => void;
+  // Sound
+  playNotificationSound: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -38,7 +58,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [selectedTable, setSelectedTable] = useState<{ id: string; so_ban: string } | null>(null);
   const [activeOrder, setActiveOrder] = useState<HoaDon | null>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
-  
+
   // Lưu trữ nhiều giỏ hàng, mỗi bàn một giỏ
   const [carts, setCarts] = useState<Record<string, CartItem[]>>({});
 
@@ -67,33 +87,186 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // --- BẮT ĐẦU CODE MỚI THÊM: SOCKET REALTIME CHO TRẠNG THÁI MÓN ---
+  // Shift Management State
+  const [currentShift, setCurrentShift] = useState<any | null>(null);
+  const [isInitialShiftCheckDone, setIsInitialShiftCheckDone] = useState(false);
+  const hasActiveShift = !!currentShift;
+
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [shiftMode, setShiftMode] = useState<'OPEN' | 'CLOSE'>('OPEN');
+
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [isPendingOrdersOpen, setIsPendingOrdersOpen] = useState(false);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Load notifications from localStorage on mount
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+    const saved = localStorage.getItem('pos_notifications');
+    if (saved) {
+      try {
+        setNotifications(JSON.parse(saved));
+      } catch (e) {
+        console.error("Lỗi parse thông báo từ localStorage", e);
+      }
+    }
+  }, []);
 
-    socket.on('cap_nhat_trang_thai_mon', (payload: any) => {
-      // payload = { id_hoa_don, id_chi_tiet, trang_thai_mon }
-      setActiveOrder((prev) => {
-        // Nếu POS hiện tại không mở đúng hóa đơn này thì bỏ qua
-        if (!prev || prev.id !== payload.id_hoa_don) return prev;
+  const { socket } = useSocket();
 
-        // Nếu đúng hóa đơn, cập nhật trạng thái món ngay lập tức
-        return {
-          ...prev,
-          ChiTietHoaDons: prev.ChiTietHoaDons?.map(item =>
-            item.id === payload.id_chi_tiet
-              ? { ...item, trang_thai_mon: payload.trang_thai_mon }
-              : item
-          )
-        };
+  // Cơ chế "mở khóa" âm thanh
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+
+  useEffect(() => {
+    const unlock = () => {
+      if (!isAudioUnlocked) {
+        const audio = new Audio();
+        audio.play().then(() => {
+          setIsAudioUnlocked(true);
+          window.removeEventListener('click', unlock);
+        }).catch(() => {
+          // Vẫn chưa được, chờ click tiếp theo
+        });
+      }
+    };
+    window.addEventListener('click', unlock);
+    return () => window.removeEventListener('click', unlock);
+  }, [isAudioUnlocked]);
+
+  const playNotificationSound = useCallback(() => {
+    if (!isAudioUnlocked) return; // Chưa tương tác thì không cố phát để tránh lỗi console
+
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => {
+        if (e.name !== 'NotAllowedError') {
+          console.error("Lỗi phát âm thanh:", e);
+        }
       });
+    } catch (err) {
+      // Bỏ qua lỗi âm thanh để không làm gián đoạn luồng chính
+    }
+  }, [isAudioUnlocked]);
+
+  const addNotification = useCallback((noti: any) => {
+    setNotifications(prev => {
+      const updated = [noti, ...prev].slice(0, 50);
+      localStorage.setItem('pos_notifications', JSON.stringify(updated));
+      return updated;
+    });
+    playNotificationSound();
+  }, [playNotificationSound]);
+
+  const removeNotification = useCallback((id: number) => {
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      localStorage.setItem('pos_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+    localStorage.removeItem('pos_notifications');
+  }, []);
+
+  // Lắng nghe món hoàn thành
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleDishDone = (data: any) => {
+      console.log("🔔 Nhận thông báo món xong:", data);
+      if (data.trang_thai_mon === 'DaXong') {
+        addNotification({
+          id: Date.now(),
+          type: 'DISH_DONE',
+          message: `${data.so_ban}: ${data.ten_mon} đã xong!`,
+          data: data,
+          time: new Date()
+        });
+      }
+    };
+
+    socket.on('trang_thai_mon_da_doi', handleDishDone);
+
+    // Lắng nghe đơn QR mới chờ duyệt
+    const handleNewQROrder = (data: any) => {
+      console.log("🔔 Nhận thông báo đơn QR mới:", data);
+
+
+      playNotificationSound();
+
+      // Cập nhật số lượng đơn chờ duyệt để hiện badge ở tab "Duyệt Đơn"
+      setPendingOrdersCount(prev => prev + 1);
+    };
+
+    socket.on('don_qr_cho_duyet', handleNewQROrder);
+
+    return () => {
+      socket.off('trang_thai_mon_da_doi', handleDishDone);
+      socket.off('don_qr_cho_duyet', handleNewQROrder);
+    };
+  }, [socket, addNotification]);
+
+  const refreshShiftStatus = useCallback(async () => {
+    try {
+      const res = await ketCaService.getCaHienTai();
+      setCurrentShift(res.data);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        setCurrentShift(null);
+      }
+    } finally {
+      setIsInitialShiftCheckDone(true);
+    }
+  }, []);
+
+  // --- SOCKET REALTIME CHO TRẠNG THÁI MÓN & CA LÀM VIỆC ---
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleDishUpdate = (payload: any) => {
+      setActiveOrder((prev) => {
+        if (!prev) return prev;
+        if (prev.id === payload.id_hoa_don) {
+          return {
+            ...prev,
+            ChiTietHoaDons: prev.ChiTietHoaDons?.map(item =>
+              item.id === payload.id_chi_tiet
+                ? { ...item, trang_thai_mon: payload.trang_thai_mon }
+                : item
+            )
+          };
+        }
+        return prev;
+      });
+
+
+      setTimeout(() => {
+        if (selectedTable && selectedTable.id === payload.id_ban) {
+          fetchActiveOrder && fetchActiveOrder(payload.id_ban);
+        } else if (payload.id_ban) {
+          fetchActiveOrder && fetchActiveOrder(payload.id_ban);
+        }
+      }, 300);
+    };
+
+    socket.on('trang_thai_mon_da_doi', handleDishUpdate);
+
+    socket.on('cap_nhat_ca', (payload: any) => {
+      console.log("🔄 Nhận thông báo cập nhật ca từ Socket:", payload.status);
+      refreshShiftStatus();
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('trang_thai_mon_da_doi', handleDishUpdate);
+      socket.off('cap_nhat_ca');
     };
-  }, []);
-  // --- KẾT THÚC CODE MỚI THÊM ---
+  }, [socket, refreshShiftStatus, selectedTable, fetchActiveOrder]);
+
+  useEffect(() => {
+    refreshShiftStatus();
+  }, [refreshShiftStatus]);
 
   useEffect(() => {
     if (selectedTable) {
@@ -111,15 +284,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (newItem: CartItem) => {
     if (!selectedTable) return;
-    
     setCarts((prev) => {
       const tableId = selectedTable.id;
       const currentTableCart = prev[tableId] || [];
-      
       const existing = currentTableCart.find(
         (item) => item.id_mon_an === newItem.id_mon_an && item.ghi_chu === newItem.ghi_chu
       );
-      
       let updatedCart;
       if (existing) {
         updatedCart = currentTableCart.map((item) =>
@@ -130,14 +300,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
       } else {
         updatedCart = [...currentTableCart, newItem];
       }
-      
       return { ...prev, [tableId]: updatedCart };
     });
   };
 
   const removeFromCart = (id_mon_an: string) => {
     if (!selectedTable) return;
-    
     setCarts((prev) => {
       const tableId = selectedTable.id;
       const currentTableCart = prev[tableId] || [];
@@ -148,7 +316,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = (id_mon_an: string, delta: number) => {
     if (!selectedTable) return;
-    
     setCarts((prev) => {
       const tableId = selectedTable.id;
       const currentTableCart = prev[tableId] || [];
@@ -165,11 +332,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const updateNote = (id_mon_an: string, note: string) => {
     if (!selectedTable) return;
-    
     setCarts((prev) => {
       const tableId = selectedTable.id;
       const currentTableCart = prev[tableId] || [];
-      const updatedCart = currentTableCart.map((item) => 
+      const updatedCart = currentTableCart.map((item) =>
         (item.id_mon_an === id_mon_an ? { ...item, ghi_chu: note } : item)
       );
       return { ...prev, [tableId]: updatedCart };
@@ -184,10 +350,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
       });
     }
   };
-
-  // Shift Management State
-  const [currentShift, setCurrentShift] = useState<any | null>(null);
-  const hasActiveShift = !!currentShift;
 
   return (
     <PosContext.Provider
@@ -206,6 +368,21 @@ export function PosProvider({ children }: { children: ReactNode }) {
         currentShift,
         setCurrentShift,
         hasActiveShift,
+        refreshShiftStatus,
+        isInitialShiftCheckDone,
+        isShiftModalOpen,
+        setIsShiftModalOpen,
+        shiftMode,
+        setShiftMode,
+        pendingOrdersCount,
+        setPendingOrdersCount,
+        isPendingOrdersOpen,
+        setIsPendingOrdersOpen,
+        notifications,
+        addNotification,
+        removeNotification,
+        clearNotifications,
+        playNotificationSound,
       }}
     >
       {children}

@@ -18,47 +18,42 @@ export default function PosPage() {
     const [mobileTab, setMobileTab] = useState<'tables' | 'menu' | 'cart' | 'pending'>('menu');
 
     const { isThuNgan, isAdmin, vaiTro } = useAuth();
-    const { setCurrentShift, currentShift, hasActiveShift } = usePos();
+    const { 
+        setCurrentShift, 
+        currentShift, 
+        hasActiveShift, 
+        refreshShiftStatus, 
+        isInitialShiftCheckDone,
+        isShiftModalOpen,
+        setIsShiftModalOpen,
+        shiftMode,
+        setShiftMode
+    } = usePos();
 
-    // Quản lý Ca (Shift Management)
-    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
-    const [shiftMode, setShiftMode] = useState<'OPEN' | 'CLOSE'>('OPEN');
-    const [isCheckingShift, setIsCheckingShift] = useState(true);
+    const isCheckingShift = !isInitialShiftCheckDone;
 
     const fetchCurrentShift = async (openReport = false) => {
         try {
-            setIsCheckingShift(true);
-            const res = await ketCaService.getCaHienTai();
-            setCurrentShift(res.data);
-
+            await refreshShiftStatus();
             if (openReport) {
                 setShiftMode('CLOSE');
                 setIsShiftModalOpen(true);
-            } else {
-                setIsShiftModalOpen(false); // Ca đang chạy và không yêu cầu mở report => Tắt modal block
             }
         } catch (error: any) {
-            if (error.response?.status === 404) {
-                // Chưa có ca mở
-                setCurrentShift(null);
-                setShiftMode('OPEN');
-                // CHỈ BLOCK CỨNG NẾU LÀ ADMIN HOẶC THU NGÂN
-                if (isAdmin || isThuNgan) {
-                    setIsShiftModalOpen(true);
-                } else {
-                    setIsShiftModalOpen(false);
-                }
-            } else {
-                console.error("Lỗi kiểm tra ca:", error);
-            }
-        } finally {
-            setIsCheckingShift(false);
+            console.error("Lỗi kiểm tra ca:", error);
         }
     };
 
+    // Theo dõi thay đổi ca từ Socket (thông qua context) để đóng/mở modal tự động
     useEffect(() => {
-        fetchCurrentShift();
-    }, []);
+        if (hasActiveShift && shiftMode === 'OPEN') {
+            setIsShiftModalOpen(false);
+        }
+        if (!hasActiveShift && (isAdmin || isThuNgan)) {
+            setShiftMode('OPEN');
+            setIsShiftModalOpen(true);
+        }
+    }, [hasActiveShift, isAdmin, isThuNgan, shiftMode, setIsShiftModalOpen, setShiftMode]);
 
     const handleOpenShiftManager = () => {
         fetchCurrentShift(true);
@@ -76,23 +71,7 @@ export default function PosPage() {
     return (
         <div className="flex flex-col lg:flex-row w-full h-full bg-[#f8f9fc] p-0 lg:p-4 gap-0 lg:gap-4 overflow-hidden relative">
             
-            {/* Shift Indicator BUtton */}
-            {!isShiftModalOpen && (
-                <button 
-                    onClick={handleOpenShiftManager}
-                    className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 border-2 px-6 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-all group scale-90 lg:scale-100 ${
-                        hasActiveShift 
-                        ? 'bg-gray-900 border-gray-800 text-white hover:bg-black' 
-                        : 'bg-red-500 border-red-400 text-white hover:bg-red-600'
-                    }`}
-                >
-                    <span className={`w-2.5 h-2.5 rounded-full ${hasActiveShift ? 'bg-emerald-400 animate-pulse' : 'bg-white'}`}></span>
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                        {hasActiveShift ? 'Ca Đang Làm Việc' : 'Chưa Mở Ca'}
-                    </span>
-                    <Lock size={12} className="ml-2 opacity-50 group-hover:opacity-100" />
-                </button>
-            )}
+
 
             {/* Cột 1: Quản lý Bàn Ăn */}
             <div className={`w-full lg:w-[25%] bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col h-full ${
@@ -105,17 +84,7 @@ export default function PosPage() {
             <div className={`flex-1 bg-white lg:rounded-3xl border-0 lg:border border-gray-100 shadow-sm overflow-hidden flex-col relative z-0 h-full ${
                 mobileTab === 'menu' ? 'flex' : 'hidden lg:flex'
             }`}>
-                {!hasActiveShift && (
-                    <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[90%] bg-amber-50 border border-amber-200 p-3 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">
-                        <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                            <Lock size={16} />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[11px] font-black text-amber-900 uppercase tracking-tight">Chưa có ca làm việc</p>
-                            <p className="text-[10px] text-amber-700 font-medium">Vui lòng liên hệ Thu ngân/Quản lý mở ca để thực hiện thanh toán.</p>
-                        </div>
-                    </div>
-                )}
+
                 <MenuSection />
             </div>
 

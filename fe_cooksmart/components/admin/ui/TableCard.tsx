@@ -13,11 +13,7 @@ interface AdminTableCardProps {
     children: React.ReactNode;
 }
 
-/**
- * Khung trắng bao bảng dữ liệu với:
- * - Header: icon + tiêu đề + số lượng kết quả
- * - Vùng scroll dọc (overflow-y-auto) với chiều cao giới hạn
- */
+
 export function AdminTableCard({
     icon,
     title,
