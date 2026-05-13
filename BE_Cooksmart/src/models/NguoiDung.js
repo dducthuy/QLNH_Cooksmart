@@ -36,14 +36,14 @@ const NguoiDung = sequelize.define(
         tableName: "NguoiDung",
         timestamps: false,
         hooks: {
-            // Tự động hash mật khẩu trước khi TẠO user mới
+            
             beforeCreate: async (nguoiDung) => {
                 if (nguoiDung.mat_khau) {
                     const salt = await bcrypt.genSalt(12);
                     nguoiDung.mat_khau = await bcrypt.hash(nguoiDung.mat_khau, salt);
                 }
             },
-            // Tự động hash mật khẩu trước khi CẬP NHẬT (nếu có đổi mật khẩu)
+            
             beforeUpdate: async (nguoiDung) => {
                 if (nguoiDung.changed("mat_khau")) {
                     const salt = await bcrypt.genSalt(12);

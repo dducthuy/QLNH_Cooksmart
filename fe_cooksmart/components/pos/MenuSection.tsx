@@ -198,17 +198,9 @@ export default function MenuSection() {
                                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia_tien)}
                                     </span>
                                     {item.con_hang && (
-                                        <button
-                                            onClick={() => addToCart({
-                                                id_mon_an: item.id,
-                                                ten_mon: item.ten_mon,
-                                                gia_tien: item.gia_tien,
-                                                hinh_anh_mon: item.hinh_anh_mon,
-                                                so_luong: 1
-                                            })}
-                                            className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#d9a01e] border border-gray-100 group-hover:border-[#d9a01e] group-hover:text-white flex items-center justify-center transition-all shadow-sm">
+                                        <div className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#d9a01e] border border-gray-100 group-hover:border-[#d9a01e] group-hover:text-white flex items-center justify-center transition-all shadow-sm">
                                             <Plus size={16} />
-                                        </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>

@@ -1,14 +1,12 @@
-const { NguyenLieu, DinhMucMonAn } = require("../models/index");
+const { NguyenLieu, DinhMucMonAn, LoaiNguyenLieu } = require("../models/index");
 const AppError = require("../utils/AppError");
 
-// ============================================================
-//  GET /api/nguyen-lieu
-//  Admin – Lấy tất cả nguyên liệu
-// ============================================================
+
 exports.layTatCaNguyenLieu = async (req, res, next) => {
     try {
         const danhSach = await NguyenLieu.findAll({
-            attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh", "loai_quan_ly", "so_luong_ton", "gia_nhap_gan_nhat"],
+            attributes: ["id", "id_loai_nguyen_lieu", "ten_nguyen_lieu", "don_vi_tinh", "loai_quan_ly", "so_luong_ton", "gia_nhap_gan_nhat", "gia_von_binh_quan"],
+            include: [{ model: LoaiNguyenLieu, attributes: ["id", "ten_loai"] }],
             order: [["ten_nguyen_lieu", "ASC"]],
         });
 
@@ -22,10 +20,10 @@ exports.layTatCaNguyenLieu = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/nguyen-lieu/:id
-//  Admin – Lấy chi tiết một nguyên liệu
-// ============================================================
+
+
+
+
 exports.layNguyenLieuTheoId = async (req, res, next) => {
     try {
         const nguyenLieu = await NguyenLieu.findByPk(req.params.id);
@@ -39,30 +37,32 @@ exports.layNguyenLieuTheoId = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/nguyen-lieu
-//  Admin only – Thêm nguyên liệu mới
-// ============================================================
+
+
+
+
 exports.taoNguyenLieu = async (req, res, next) => {
     try {
-        const { ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
+        const { id_loai_nguyen_lieu, ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
 
         if (!ten_nguyen_lieu || !ten_nguyen_lieu.trim()) {
             return next(new AppError("Vui lòng nhập tên nguyên liệu!", 400));
         }
 
-        // Kiểm tra trùng tên
+
         const daTonTai = await NguyenLieu.findOne({ where: { ten_nguyen_lieu: ten_nguyen_lieu.trim() } });
         if (daTonTai) {
             return next(new AppError(`Nguyên liệu "${ten_nguyen_lieu.trim()}" đã tồn tại!`, 409));
         }
 
         const nguyenLieuMoi = await NguyenLieu.create({
-            ten_nguyen_lieu:    ten_nguyen_lieu.trim(),
-            don_vi_tinh:        don_vi_tinh        || null,
-            loai_quan_ly:       loai_quan_ly       || "THU_CONG",
-            so_luong_ton:       so_luong_ton       !== undefined ? Number(so_luong_ton)       : 0,
-            gia_nhap_gan_nhat:  gia_nhap_gan_nhat  !== undefined ? Number(gia_nhap_gan_nhat)  : 0,
+            ten_nguyen_lieu: ten_nguyen_lieu.trim(),
+            id_loai_nguyen_lieu: id_loai_nguyen_lieu || null,
+            don_vi_tinh: don_vi_tinh || null,
+            loai_quan_ly: loai_quan_ly || "THU_CONG",
+            so_luong_ton: so_luong_ton !== undefined ? Number(so_luong_ton) : 0,
+            gia_nhap_gan_nhat: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat) : 0,
+            gia_von_binh_quan: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat) : 0,
         });
 
         res.status(201).json({
@@ -75,10 +75,10 @@ exports.taoNguyenLieu = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/nguyen-lieu/:id
-//  Admin only – Cập nhật nguyên liệu
-// ============================================================
+
+
+
+
 exports.capNhatNguyenLieu = async (req, res, next) => {
     try {
         const nguyenLieu = await NguyenLieu.findByPk(req.params.id);
@@ -86,9 +86,9 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy nguyên liệu với ID: ${req.params.id}`, 404));
         }
 
-        const { ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
+        const { id_loai_nguyen_lieu, ten_nguyen_lieu, don_vi_tinh, loai_quan_ly, so_luong_ton, gia_nhap_gan_nhat } = req.body;
 
-        // Kiểm tra trùng tên với nguyên liệu KHÁC
+        
         if (ten_nguyen_lieu && ten_nguyen_lieu.trim() !== nguyenLieu.ten_nguyen_lieu) {
             const daTonTai = await NguyenLieu.findOne({ where: { ten_nguyen_lieu: ten_nguyen_lieu.trim() } });
             if (daTonTai && daTonTai.id !== nguyenLieu.id) {
@@ -97,11 +97,12 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
         }
 
         await nguyenLieu.update({
-            ten_nguyen_lieu:   ten_nguyen_lieu   !== undefined ? ten_nguyen_lieu.trim()           : nguyenLieu.ten_nguyen_lieu,
-            don_vi_tinh:       don_vi_tinh       !== undefined ? don_vi_tinh                      : nguyenLieu.don_vi_tinh,
-            loai_quan_ly:      loai_quan_ly      !== undefined ? loai_quan_ly                     : nguyenLieu.loai_quan_ly,
-            so_luong_ton:      so_luong_ton      !== undefined ? Number(so_luong_ton)             : nguyenLieu.so_luong_ton,
-            gia_nhap_gan_nhat: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat)        : nguyenLieu.gia_nhap_gan_nhat,
+            ten_nguyen_lieu: ten_nguyen_lieu !== undefined ? ten_nguyen_lieu.trim() : nguyenLieu.ten_nguyen_lieu,
+            id_loai_nguyen_lieu: id_loai_nguyen_lieu !== undefined ? id_loai_nguyen_lieu : nguyenLieu.id_loai_nguyen_lieu,
+            don_vi_tinh: don_vi_tinh !== undefined ? don_vi_tinh : nguyenLieu.don_vi_tinh,
+            loai_quan_ly: loai_quan_ly !== undefined ? loai_quan_ly : nguyenLieu.loai_quan_ly,
+            so_luong_ton: so_luong_ton !== undefined ? Number(so_luong_ton) : nguyenLieu.so_luong_ton,
+            gia_nhap_gan_nhat: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat) : nguyenLieu.gia_nhap_gan_nhat,
         });
 
         res.status(200).json({
@@ -114,11 +115,11 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/nguyen-lieu/:id
-//  Admin only – Xóa nguyên liệu
-//  ⚠️ Chặn xóa nếu nguyên liệu đang dùng trong định mức món ăn
-// ============================================================
+
+
+
+
+
 exports.xoaNguyenLieu = async (req, res, next) => {
     try {
         const nguyenLieu = await NguyenLieu.findByPk(req.params.id);
@@ -126,7 +127,7 @@ exports.xoaNguyenLieu = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy nguyên liệu với ID: ${req.params.id}`, 404));
         }
 
-        // Kiểm tra còn liên kết định mức không
+        
         const soDinhMuc = await DinhMucMonAn.count({ where: { id_nguyen_lieu: req.params.id } });
         if (soDinhMuc > 0) {
             return next(

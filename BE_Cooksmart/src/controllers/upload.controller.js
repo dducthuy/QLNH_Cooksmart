@@ -1,4 +1,4 @@
-// Tải lên 1 ảnh đơn lẻ
+
 const uploadImage = (req, res) => {
   try {
     if (!req.file) {
@@ -26,7 +26,7 @@ const uploadImage = (req, res) => {
   }
 };
 
-// Tải lên nhiều ảnh cùng lúc
+
 const uploadImages = (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -36,7 +36,7 @@ const uploadImages = (req, res) => {
       });
     }
 
-    // Lấy danh sách URL của tất cả các file đã up
+    
     const urls = req.files.map(file => ({
       url: file.path,
       filename: file.filename

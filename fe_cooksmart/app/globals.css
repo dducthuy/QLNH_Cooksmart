@@ -22,4 +22,14 @@ body {
   h2 { @apply text-xl font-bold tracking-wide; }
   h3 { @apply text-lg font-bold; }
   p { @apply text-sm leading-relaxed; }
+
+  /* Ẩn mũi tên spinner của input type="number" */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield; /* Dành cho Firefox */
+  }
 }

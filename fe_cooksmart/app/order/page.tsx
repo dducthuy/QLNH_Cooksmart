@@ -10,35 +10,15 @@ import {
 import { banAnService } from '@/services/banAn.service';
 import { hoaDonService } from '@/services/hoaDon.service';
 import { comboService } from '@/services/combo.service';
+import { dishService } from '@/services/dish.service';
+import { categoryService } from '@/services/category.service';
 import { BanAn } from '@/types/banAn';
 import { useSocket } from '@/context/SocketContext';
 import ComboDetailModal from '@/components/ui/ComboDetailModal';
 import { Combo } from '@/types/combo';
 
 
-async function fetchMonAn(): Promise<any[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/mon-an`, { cache: 'no-store' });
-    const json = await res.json();
-    return json.data ?? [];
-}
 
-async function fetchDanhMuc(): Promise<any[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/danh-muc`, { cache: 'no-store' });
-    const json = await res.json();
-    return json.data ?? [];
-}
-
-async function fetchTableInfo(id: string): Promise<any> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ban-an/${id}`, { cache: 'no-store' });
-    const json = await res.json();
-    return json.data ?? null;
-}
-
-async function fetchActiveInvoice(id_ban: string): Promise<any> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/hoa-don/khach-hang/ban/${id_ban}`, { cache: 'no-store' });
-    const json = await res.json();
-    return json.data ?? null;
-}
 
 
 interface CartItem {
@@ -91,7 +71,7 @@ function DishCard({ mon, qty, onAdd, onRemove, isCombo = false, onViewDetail }: 
         : null;
 
     return (
-        <div 
+        <div
             onClick={() => isCombo && onViewDetail && onViewDetail()}
             className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all duration-200 ${qty > 0 ? 'border-amber-300 shadow-amber-100' : 'border-gray-100'} ${isCombo ? 'cursor-pointer hover:border-amber-400' : ''}`}
         >
@@ -129,17 +109,17 @@ function DishCard({ mon, qty, onAdd, onRemove, isCombo = false, onViewDetail }: 
                     <span className={`font-black text-sm text-amber-600`}>{vnd(mon.gia_tien)}</span>
                     {(isCombo || mon.con_hang) && (
                         qty === 0 ? (
-                            <button 
+                            <button
                                 onClick={(e) => {
                                     if (isCombo) e.stopPropagation();
                                     onAdd();
-                                }} 
+                                }}
                                 className={`w-8 h-8 bg-amber-500 hover:bg-amber-600 shadow-amber-200 text-white rounded-xl flex items-center justify-center shadow-md active:scale-90 transition-all`}
                             >
                                 <Plus size={16} />
                             </button>
                         ) : (
-                            <div 
+                            <div
                                 onClick={(e) => isCombo && e.stopPropagation()}
                                 className={`flex items-center gap-1 bg-amber-50 border-amber-200 rounded-xl border px-1 py-0.5`}
                             >
@@ -159,7 +139,6 @@ function DishCard({ mon, qty, onAdd, onRemove, isCombo = false, onViewDetail }: 
     );
 }
 
-// ─── Main Page (wrapped in Suspense) ───────────────────────────────────────
 function OrderPageContent() {
     const searchParams = useSearchParams();
     const tableId = searchParams.get('tableId');
@@ -181,15 +160,15 @@ function OrderPageContent() {
 
     const { socket } = useSocket();
 
-    // ── Load data ──
+
     const loadData = useCallback(async () => {
         if (!tableId) { setIsLoading(false); return; }
         try {
             const [table, monAn, danhMuc, order, combos] = await Promise.all([
-                fetchTableInfo(tableId),
-                fetchMonAn(),
-                fetchDanhMuc(),
-                fetchActiveInvoice(tableId),
+                banAnService.getById(tableId),
+                dishService.getAll(),
+                categoryService.getAll(),
+                hoaDonService.getActiveByTable(tableId),
                 comboService.getPublic()
             ]);
             setTableInfo(table);
@@ -218,7 +197,7 @@ function OrderPageContent() {
         };
 
         const handleOrderUpdate = () => {
-            fetchActiveInvoice(tableId).then(setActiveOrder).catch(console.error);
+            hoaDonService.getActiveByTable(tableId).then(setActiveOrder).catch(console.error);
         };
 
         socket.on('cap_nhat_menu', handleMenuUpdate);
@@ -230,14 +209,14 @@ function OrderPageContent() {
         };
     }, [socket, tableId]);
 
-    // ── Cart helpers ──
+
     const getQty = (id: string) => cart.find(c => c.id === id)?.so_luong ?? 0;
 
     const addToCart = (item: any, isCombo = false) => {
         setCart(prev => {
             const existing = prev.find(c => c.id === item.id);
             if (existing) return prev.map(c => c.id === item.id ? { ...c, so_luong: c.so_luong + 1 } : c);
-            
+
             const cartItem: CartItem = {
                 id: item.id,
                 ten_mon: isCombo ? item.ten_combo : item.ten_mon,
@@ -247,7 +226,7 @@ function OrderPageContent() {
             };
             if (isCombo) cartItem.id_combo = item.id;
             else cartItem.id_mon_an = item.id;
-            
+
             return [...prev, cartItem];
         });
     };
@@ -272,10 +251,10 @@ function OrderPageContent() {
             setIsSubmitting(true);
             await hoaDonService.createKhachHang({
                 id_ban: tableId,
-                chi_tiet_hoa_don: cart.map(i => ({ 
-                    id_mon_an: i.id_mon_an, 
+                chi_tiet_hoa_don: cart.map(i => ({
+                    id_mon_an: i.id_mon_an,
                     id_combo: i.id_combo,
-                    so_luong: i.so_luong 
+                    so_luong: i.so_luong
                 }))
             });
             setOrderSuccess(true);
@@ -564,9 +543,9 @@ function OrderPageContent() {
 
             {/* Combo Detail Modal */}
             {viewingCombo && (
-                <ComboDetailModal 
-                    combo={viewingCombo} 
-                    onClose={() => setViewingCombo(null)} 
+                <ComboDetailModal
+                    combo={viewingCombo}
+                    onClose={() => setViewingCombo(null)}
                 />
             )}
         </div>

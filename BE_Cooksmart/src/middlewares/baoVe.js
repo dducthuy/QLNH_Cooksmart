@@ -16,7 +16,7 @@ const { xacMinhToken } = require("../utils/jwt");
  */
 const baoVe = async (req, res, next) => {
     try {
-        // [1] Lấy token từ header
+        
         let token;
         if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
             token = req.headers.authorization.split(" ")[1];
@@ -26,10 +26,10 @@ const baoVe = async (req, res, next) => {
             return next(new AppError("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.", 401));
         }
 
-        // [2] Xác minh token (sẽ throw lỗi nếu hết hạn hoặc giả mạo)
+        
         const decoded = xacMinhToken(token);
 
-        // [3] Kiểm tra user còn tồn tại trong DB không
+        
         const nguoiDung = await NguoiDung.findByPk(decoded.id, {
             attributes: ["id", "ten_dang_nhap", "ho_ten", "vai_tro", "trang_thai"],
         });

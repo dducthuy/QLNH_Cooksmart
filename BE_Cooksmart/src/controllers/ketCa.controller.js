@@ -2,15 +2,15 @@ const { KetCa, HoaDon, ChiTieuCa, NguoiDung } = require("../models");
 const AppError = require("../utils/AppError");
 const { Op } = require("sequelize");
 
-// =======================================================
-// MỞ CA MỚI (Open Shift)
-// =======================================================
+
+
+
 exports.moCa = async (req, res, next) => {
     try {
-        const id_nhan_vien = req.nguoiDung.id; // Lấy từ middleware auth
-        const { starting_cash } = req.body; // Tiền đầu ca
+        const id_nhan_vien = req.nguoiDung.id; 
+        const { starting_cash } = req.body; 
 
-        // 1. Kiểm tra xem nhân viên này có ca nào đang chạy không
+        
         const caDangChay = await KetCa.findOne({
             where: {
                 id_nhan_vien,
@@ -22,7 +22,7 @@ exports.moCa = async (req, res, next) => {
             return next(new AppError("Bạn đang có một ca làm việc chưa đóng. Vui lòng chốt ca trước khi mở ca mới!", 400));
         }
 
-        // 2. Tạo ca mới
+        
         const caMoi = await KetCa.create({
             id_nhan_vien,
             tien_dau_ca: starting_cash || 0,
@@ -35,7 +35,7 @@ exports.moCa = async (req, res, next) => {
             data: caMoi,
         });
 
-        // Phát socket để các máy POS khác cập nhật trạng thái ca
+        
         const io = req.app.get("socketio");
         if (io) {
             io.emit("cap_nhat_ca", { status: "OPEN", ca: caMoi });
@@ -45,9 +45,9 @@ exports.moCa = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// LẤY THÔNG TIN CA ĐANG CHẠY CỦA NHÂN VIÊN HIỆN TẠI
-// =======================================================
+
+
+
 exports.layThongTinCaHienTai = async (req, res, next) => {
     try {
         const id_nhan_vien = req.nguoiDung.id;
@@ -59,7 +59,7 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
             },
         ];
 
-        // 1. Tìm ca đang chạy của nhân viên này
+        
         let caHienTai = await KetCa.findOne({
             where: {
                 id_nhan_vien,
@@ -68,7 +68,7 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
             include: includeNguoiDung,
         });
 
-        // 1.2 Nếu không có ca riêng, tìm ca đang chạy mới nhất của hệ thống (Cho phép Phục vụ dùng chung ca với Thu ngân)
+        
         if (!caHienTai) {
             caHienTai = await KetCa.findOne({
                 where: {
@@ -83,13 +83,13 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
             return next(new AppError("Không tìm thấy ca làm việc nào đang mở trong hệ thống.", 404));
         }
 
-        // 1.1 Tìm danh sách chi tiêu trong ca này
+        
         const danhSachChiTieu = await ChiTieuCa.findAll({
             where: { id_ket_ca: caHienTai.id }
         });
         const tongTienChi = danhSachChiTieu.reduce((sum, item) => sum + Number(item.so_tien), 0);
 
-        // 2. Thống kê hóa đơn đã thanh toán thuộc ca này
+        
         const danhSachHoaDon = await HoaDon.findAll({
             where: {
                 id_ket_ca: caHienTai.id,
@@ -109,7 +109,7 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
             }
         });
 
-        // Tiền mặt lý thuyết = Tiền đầu ca + Doanh thu Tiền mặt - Tiền chi
+        
         const expected_cash = Number(caHienTai.tien_dau_ca) + tongDoanhThuTienMat - tongTienChi;
 
         res.status(200).json({
@@ -129,15 +129,15 @@ exports.layThongTinCaHienTai = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// CHỐT CA (Close Shift)
-// =======================================================
+
+
+
 exports.chotCa = async (req, res, next) => {
     try {
         const shift_id = req.params.id;
-        const { actual_cash } = req.body; // Tiền mặt thực tế đếm được cuối ca
+        const { actual_cash } = req.body; 
 
-        // 1. Tìm ca làm việc
+        
         const caLamViec = await KetCa.findByPk(shift_id);
         
         if (!caLamViec) {
@@ -148,7 +148,7 @@ exports.chotCa = async (req, res, next) => {
             return next(new AppError("Ca làm việc này đã được chốt rồi!", 400));
         }
 
-        // 2. Tính toán tổng doanh thu
+        
         const danhSachHoaDon = await HoaDon.findAll({
             where: {
                 id_ket_ca: shift_id,
@@ -167,7 +167,7 @@ exports.chotCa = async (req, res, next) => {
             }
         });
 
-        // 2.1 Tính toán tổng tiền chi
+        
         const danhSachChiTieu = await ChiTieuCa.findAll({
             where: { id_ket_ca: shift_id }
         });
@@ -177,7 +177,7 @@ exports.chotCa = async (req, res, next) => {
         const expected_cash = tien_dau_ca + tongDoanhThuTienMat - tongTienChi;
         const difference = (actual_cash !== undefined ? actual_cash : expected_cash) - expected_cash;
 
-        // 3. Cập nhật và đóng ca
+        
         await caLamViec.update({
             trang_thai_ca: "DaKetThuc",
             thoi_gian_ket_thuc: new Date(),
@@ -193,7 +193,7 @@ exports.chotCa = async (req, res, next) => {
             data: caLamViec,
         });
 
-        // Phát socket thông báo ca đã đóng
+        
         const io = req.app.get("socketio");
         if (io) {
             io.emit("cap_nhat_ca", { status: "CLOSED", ca: caLamViec });
@@ -203,9 +203,9 @@ exports.chotCa = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// THÊM CHI TIÊU TRONG CA (Add Expense)
-// =======================================================
+
+
+
 exports.themChiTieuCa = async (req, res, next) => {
     try {
         const id_nhan_vien = req.nguoiDung.id;
@@ -215,7 +215,7 @@ exports.themChiTieuCa = async (req, res, next) => {
             return next(new AppError("Lý do và số tiền chi không hợp lệ", 400));
         }
 
-        // 1. Tìm ca đang mở của nhân viên
+        
         const caActive = await KetCa.findOne({
             where: { id_nhan_vien, trang_thai_ca: "DangChay" }
         });
@@ -224,7 +224,7 @@ exports.themChiTieuCa = async (req, res, next) => {
             return next(new AppError("Bạn phải mở ca làm việc mới có thể ghi nhận chi tiêu", 400));
         }
 
-        // 2. Tạo bản ghi chi tiêu
+        
         const chiTieuMoi = await ChiTieuCa.create({
             id_ket_ca: caActive.id,
             id_nhan_vien,

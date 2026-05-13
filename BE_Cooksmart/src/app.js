@@ -9,6 +9,7 @@ const danhMucRoutes    = require("./routes/danhMuc.route");
 const monAnRoutes      = require("./routes/monAn.route");
 const banAnRoutes      = require("./routes/banAn.route");
 const nguyenLieuRoutes = require("./routes/nguyenLieu.route");
+const loaiNguyenLieuRoutes = require("./routes/loaiNguyenLieu.route");
 const dinhMucRoutes    = require("./routes/dinhMucMonAn.route");
 const uploadRoutes     = require("./routes/upload.routes");
 const nguoiDungRoutes  = require("./routes/nguoiDung.route");
@@ -39,6 +40,7 @@ app.use("/api/ban-an",           banAnRoutes);
 app.use("/api/nguoi-dung",       nguoiDungRoutes);
 
 app.use("/api/nguyen-lieu",       nguyenLieuRoutes);
+app.use("/api/loai-nguyen-lieu", loaiNguyenLieuRoutes);
 app.use("/api/dinh-muc-mon-an",  dinhMucRoutes);
 app.use("/api/upload",           uploadRoutes);
 app.use("/api/kho",              khoRoutes);

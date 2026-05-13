@@ -3,7 +3,7 @@ const { NguoiDung } = require("../models/index");
 const AppError = require("../utils/AppError");
 const { Op } = require("sequelize");
 
-// Các trường an toàn trả về (không bao giờ trả mat_khau)
+
 const SAFE_ATTRS = ["id", "ten_dang_nhap", "ho_ten", "vai_tro", "trang_thai"];
 const DS_VAI_TRO = ["Admin", "ThuNgan", "PhucVu", "Bep"];
 
@@ -47,10 +47,10 @@ exports.layTatCaNguoiDung = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/nguoi-dung/:id
-//  Admin – Lấy chi tiết một người dùng
-// ============================================================
+
+
+
+
 exports.layNguoiDungTheoId = async (req, res, next) => {
     try {
         const nguoiDung = await NguoiDung.findByPk(req.params.id, {
@@ -67,15 +67,15 @@ exports.layNguoiDungTheoId = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/nguoi-dung
-//  Admin – Tạo tài khoản người dùng mới
-// ============================================================
+
+
+
+
 exports.taoNguoiDung = async (req, res, next) => {
     try {
         const { ten_dang_nhap, mat_khau, ho_ten, vai_tro } = req.body;
 
-        // Validate bắt buộc
+        
         if (!ten_dang_nhap || !ten_dang_nhap.trim()) {
             return next(new AppError("Vui lòng nhập tên đăng nhập!", 400));
         }
@@ -86,13 +86,13 @@ exports.taoNguoiDung = async (req, res, next) => {
             return next(new AppError(`Vai trò không hợp lệ! Chỉ chấp nhận: ${DS_VAI_TRO.join(", ")}`, 400));
         }
 
-        // Kiểm tra trùng tên đăng nhập
+        
         const daTonTai = await NguoiDung.findOne({ where: { ten_dang_nhap: ten_dang_nhap.trim() } });
         if (daTonTai) {
             return next(new AppError(`Tên đăng nhập "${ten_dang_nhap.trim()}" đã tồn tại!`, 409));
         }
 
-        // Tạo người dùng (hook beforeCreate sẽ tự hash mật khẩu)
+        
         const nguoiDungMoi = await NguoiDung.create({
             ten_dang_nhap: ten_dang_nhap.trim(),
             mat_khau,
@@ -117,10 +117,10 @@ exports.taoNguoiDung = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/nguoi-dung/:id
-//  Admin – Cập nhật thông tin người dùng (không đổi mật khẩu ở đây)
-// ============================================================
+
+
+
+
 exports.capNhatNguoiDung = async (req, res, next) => {
     try {
         const nguoiDung = await NguoiDung.findByPk(req.params.id);
@@ -130,12 +130,12 @@ exports.capNhatNguoiDung = async (req, res, next) => {
 
         const { ho_ten, vai_tro, trang_thai, ten_dang_nhap } = req.body;
 
-        // Validate vai trò nếu có truyền
+        
         if (vai_tro !== undefined && !DS_VAI_TRO.includes(vai_tro)) {
             return next(new AppError(`Vai trò không hợp lệ! Chỉ chấp nhận: ${DS_VAI_TRO.join(", ")}`, 400));
         }
 
-        // Kiểm tra trùng tên đăng nhập với người KHÁC
+        
         if (ten_dang_nhap && ten_dang_nhap.trim() !== nguoiDung.ten_dang_nhap) {
             const daTonTai = await NguoiDung.findOne({ where: { ten_dang_nhap: ten_dang_nhap.trim() } });
             if (daTonTai && daTonTai.id !== nguoiDung.id) {
@@ -143,7 +143,7 @@ exports.capNhatNguoiDung = async (req, res, next) => {
             }
         }
 
-        // Không cho phép Admin tự xóa quyền Admin của chính mình
+        
         if (
             req.nguoiDung.id === nguoiDung.id &&
             vai_tro !== undefined &&
@@ -175,10 +175,7 @@ exports.capNhatNguoiDung = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/nguoi-dung/:id/doi-mat-khau
-//  Admin – Đặt lại mật khẩu người dùng
-// ============================================================
+
 exports.doiMatKhau = async (req, res, next) => {
     try {
         const nguoiDung = await NguoiDung.findByPk(req.params.id);
@@ -192,7 +189,7 @@ exports.doiMatKhau = async (req, res, next) => {
             return next(new AppError("Mật khẩu mới phải có ít nhất 6 ký tự!", 400));
         }
 
-        // Gán mới → hook beforeUpdate sẽ tự hash
+        
         nguoiDung.mat_khau = mat_khau_moi;
         await nguoiDung.save();
 
@@ -205,10 +202,7 @@ exports.doiMatKhau = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/nguoi-dung/:id/trang-thai
-//  Admin – Kích hoạt / Vô hiệu hóa tài khoản
-// ============================================================
+
 exports.doiTrangThai = async (req, res, next) => {
     try {
         const nguoiDung = await NguoiDung.findByPk(req.params.id);
@@ -216,7 +210,7 @@ exports.doiTrangThai = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy người dùng với ID: ${req.params.id}`, 404));
         }
 
-        // Không cho Admin tự vô hiệu hóa chính mình
+        
         if (req.nguoiDung.id === nguoiDung.id) {
             return next(new AppError("Bạn không thể vô hiệu hóa tài khoản của chính mình!", 403));
         }
@@ -236,10 +230,7 @@ exports.doiTrangThai = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/nguoi-dung/:id
-//  Admin – Xóa vĩnh viễn tài khoản
-// ============================================================
+
 exports.xoaNguoiDung = async (req, res, next) => {
     try {
         const nguoiDung = await NguoiDung.findByPk(req.params.id);
@@ -247,7 +238,7 @@ exports.xoaNguoiDung = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy người dùng với ID: ${req.params.id}`, 404));
         }
 
-        // Không cho Admin tự xóa chính mình
+        
         if (req.nguoiDung.id === nguoiDung.id) {
             return next(new AppError("Bạn không thể xóa tài khoản của chính mình!", 403));
         }
@@ -264,10 +255,7 @@ exports.xoaNguoiDung = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/nguoi-dung/online
-//  Admin – Lấy danh sách user ID đang online (real-time)
-// ============================================================
+
 exports.layDanhSachOnline = async (req, res, next) => {
     try {
         const onlineUsers = req.app.get("onlineUsers");

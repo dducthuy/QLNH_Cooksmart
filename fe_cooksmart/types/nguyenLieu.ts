@@ -1,25 +1,33 @@
 export interface NguyenLieu {
   id: string;
+  id_loai_nguyen_lieu?: string | null;
   ten_nguyen_lieu: string;
   don_vi_tinh: string | null;
-  so_luong_kho_tong: number;
-  so_luong_tai_bep: number;
-  gia_nhap_gan_nhat: number;
+  loai_quan_ly: 'TU_DONG' | 'THU_CONG';
+  so_luong_ton: number | string;
+  gia_nhap_gan_nhat: number | string;
+  gia_von_binh_quan: number | string;
+  LoaiNguyenLieu?: {
+    id: string;
+    ten_loai: string;
+  };
 }
 
 export interface TaoNguyenLieuBody {
+  id_loai_nguyen_lieu?: string | null;
   ten_nguyen_lieu: string;
   don_vi_tinh?: string | null;
-  so_luong_kho_tong?: number;
-  so_luong_tai_bep?: number;
+  loai_quan_ly?: 'TU_DONG' | 'THU_CONG';
+  so_luong_ton?: number;
   gia_nhap_gan_nhat?: number;
 }
 
 export interface CapNhatNguyenLieuBody {
+  id_loai_nguyen_lieu?: string | null;
   ten_nguyen_lieu?: string;
   don_vi_tinh?: string | null;
-  so_luong_kho_tong?: number;
-  so_luong_tai_bep?: number;
+  loai_quan_ly?: 'TU_DONG' | 'THU_CONG';
+  so_luong_ton?: number;
   gia_nhap_gan_nhat?: number;
 }
 

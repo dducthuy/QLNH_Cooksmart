@@ -9,6 +9,10 @@ const NguyenLieu = sequelize.define(
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
+        id_loai_nguyen_lieu: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
         ten_nguyen_lieu: {
             type: DataTypes.STRING(255),
             allowNull: false,
@@ -27,6 +31,10 @@ const NguyenLieu = sequelize.define(
             defaultValue: 0,
         },
         gia_nhap_gan_nhat: {
+            type: DataTypes.DECIMAL(10, 2),
+            defaultValue: 0,
+        },
+        gia_von_binh_quan: {
             type: DataTypes.DECIMAL(10, 2),
             defaultValue: 0,
         },

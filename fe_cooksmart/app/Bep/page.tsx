@@ -22,9 +22,9 @@ export default function KitchenPage() {
     const fetchInitialTickets = useCallback(async () => {
         try {
             setLoading(true);
-            // Chỉ lấy các đơn có trạng thái 'DangPhucVu'
+
             const activeOrders = await hoaDonService.getAll({ trang_thai_hd: 'DangPhucVu' });
-            
+
             const fullTickets = await Promise.all(
                 activeOrders.map(t => hoaDonService.getById(t.id))
             );
@@ -63,8 +63,8 @@ export default function KitchenPage() {
             console.log("Bếp nhận được đơn mới:", payload);
             try {
                 const newTicket = await hoaDonService.getById(payload.id_hoa_don);
-                
-                // CHỈ THÊM NẾU LÀ ĐƠN ĐANG PHỤC VỤ (ĐÃ DUYỆT)
+
+
                 if (newTicket.trang_thai_hd !== 'DangPhucVu') return;
 
                 setTickets(prev => {

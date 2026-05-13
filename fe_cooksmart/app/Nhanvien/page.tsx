@@ -15,10 +15,10 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function PosPage() {
-    // State để điều khiển tab trên giao diện Mobile (Điện thoại/ iPad xoay dọc)
+
     const [mobileTab, setMobileTab] = useState<'tables' | 'menu' | 'cart' | 'pending'>('menu');
 
-    const { isThuNgan, isAdmin, vaiTro } = useAuth();
+    const { isThuNgan, isAdmin } = useAuth();
     const {
         setCurrentShift,
         currentShift,
@@ -95,10 +95,10 @@ export default function PosPage() {
                 <OrderCart />
             </div>
 
-            {/* Đơn Chờ Duyệt (QR Orders) - Now a floating drawer */}
+
             <PendingOrdersPanel />
 
-            {/* Thanh điều hướng Bottom Navigation Bar DÀNH RIÊNG CHO MOBILE */}
+
             <div className="lg:hidden shrink-0 flex items-center justify-around bg-white border-t border-gray-100 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] p-2 pb-safe z-50">
                 <button
                     onClick={() => setMobileTab('tables')}
@@ -124,23 +124,16 @@ export default function PosPage() {
                     <ShoppingBag size={22} className="mb-1.5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Giỏ Hàng</span>
                 </button>
-                <button
-                    onClick={() => setMobileTab('pending')}
-                    className={`flex flex-col items-center p-2 rounded-2xl w-20 transition-all relative ${mobileTab === 'pending' ? 'text-violet-600 bg-violet-50 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                >
-                    <ClipboardList size={22} className="mb-1.5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">QR Orders</span>
-                </button>
+
             </div>
 
-            {/* Cửa sổ Quản lý Ca (Shift Modal) */}
+
             <ShiftModal
                 isOpen={isShiftModalOpen}
                 mode={shiftMode}
                 currentShiftData={currentShift}
                 onClose={() => {
-                    // Cho phép đóng modal nếu user không bắt buộc phải mở ca
+
                     setIsShiftModalOpen(false);
                 }}
                 onSuccess={() => {
@@ -148,7 +141,7 @@ export default function PosPage() {
                 }}
             />
 
-            {/* Combo Detail Modal - Cấp cao nhất để che phủ toàn bộ */}
+
             {viewingCombo && (
                 <ComboDetailModal
                     combo={viewingCombo}

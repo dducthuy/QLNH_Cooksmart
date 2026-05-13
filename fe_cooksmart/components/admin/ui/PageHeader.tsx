@@ -9,12 +9,13 @@ interface AdminPageHeaderProps {
     title: string;
     subtitle: string;
     /** Search */
-    searchValue: string;
-    onSearchChange: (val: string) => void;
+    searchValue?: string;
+    onSearchChange?: (val: string) => void;
     searchPlaceholder?: string;
+    hideSearch?: boolean;
     /** Refresh */
-    onRefresh: () => void;
-    isLoading: boolean;
+    onRefresh?: () => void;
+    isLoading?: boolean;
     /** Add button */
     onAdd?: () => void;
     addLabel?: string;
@@ -26,11 +27,12 @@ export function AdminPageHeader({
     icon,
     title,
     subtitle,
-    searchValue,
+    searchValue = '',
     onSearchChange,
     searchPlaceholder = 'Tìm kiếm...',
+    hideSearch = false,
     onRefresh,
-    isLoading,
+    isLoading = false,
     onAdd,
     addLabel = 'Thêm',
     extraActions,
@@ -51,28 +53,32 @@ export function AdminPageHeader({
             {/* Right – Actions */}
             <div className="flex items-center gap-2 flex-wrap">
                 {/* Search */}
-                <div className="relative group">
-                    <Search
-                        size={15}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
-                    />
-                    <input
-                        type="text"
-                        placeholder={searchPlaceholder}
-                        value={searchValue}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all w-56"
-                    />
-                </div>
+                {!hideSearch && onSearchChange && (
+                    <div className="relative group">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchValue}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all w-56"
+                        />
+                    </div>
+                )}
 
                 {/* Refresh */}
-                <button
-                    onClick={onRefresh}
-                    title="Làm mới"
-                    className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all"
-                >
-                    <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
-                </button>
+                {onRefresh && (
+                    <button
+                        onClick={onRefresh}
+                        title="Làm mới"
+                        className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all"
+                    >
+                        <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                )}
 
                 {/* Extra actions slot */}
                 {extraActions}

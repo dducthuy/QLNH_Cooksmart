@@ -4,20 +4,31 @@ const { baoVe, phanQuyen } = require("../middlewares/baoVe");
 
 const router = express.Router();
 
-// Bắt buộc phải đăng nhập, chỉ Admin và NhanVien được thao tác kho
-router.use(baoVe);
-router.use(phanQuyen("Admin", "NhanVien"));
 
-// Nhập hàng
+router.use(baoVe);
+router.use(phanQuyen("Admin", "NhanVien", "PhucVu", "ThuNgan"));
+
+
 router.post("/nhap-hang", khoController.nhapKho);
 
-// Kiểm kê
+
+router.post("/xuat-hang", khoController.xuatKho);
+
+
 router.post("/kiem-ke", khoController.kiemKeKho);
 
-// Xem lịch sử nhập/xuất/kiểm kê
+
 router.get("/lich-su", khoController.layNhatKyKho);
 
-// Xem báo cáo hao hụt
+
 router.get("/bao-cao-hao-hut", khoController.layBaoCaoHaoHut);
+
+
+router.get("/phieu-kiem-ke", khoController.layDanhSachPhieuKiemKe);
+router.get("/phieu-kiem-ke/:id", khoController.layChiTietPhieuKiemKe);
+
+
+router.get("/phieu-nhap-xuat", khoController.layDanhSachPhieuNhapXuat);
+router.get("/phieu-nhap-xuat/:id", khoController.layChiTietPhieuNhapXuat);
 
 module.exports = router;

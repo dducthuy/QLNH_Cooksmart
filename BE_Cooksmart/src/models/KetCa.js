@@ -45,7 +45,7 @@ const KetCa = sequelize.define(
             type: DataTypes.ENUM("DangChay", "DaKetThuc"),
             defaultValue: "DangChay",
         },
-        // ── Kiểm duyệt Admin (Audit) ──────────────────────────────────────────
+        
         da_kiem_duyet: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,

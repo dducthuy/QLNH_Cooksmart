@@ -63,7 +63,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [activeOrder, setActiveOrder] = useState<HoaDon | null>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
 
-  // Lưu trữ nhiều giỏ hàng, mỗi bàn một giỏ
+
   const [carts, setCarts] = useState<Record<string, CartItem[]>>({});
 
   // Giỏ hàng hiện tại dựa trên bàn đang chọn
@@ -130,7 +130,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
           setIsAudioUnlocked(true);
           window.removeEventListener('click', unlock);
         }).catch(() => {
-          // Vẫn chưa được, chờ click tiếp theo
+
         });
       }
     };
@@ -139,7 +139,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   }, [isAudioUnlocked]);
 
   const playNotificationSound = useCallback(() => {
-    if (!isAudioUnlocked) return; // Chưa tương tác thì không cố phát để tránh lỗi console
+    if (!isAudioUnlocked) return;
 
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -149,7 +149,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch (err) {
-      // Bỏ qua lỗi âm thanh để không làm gián đoạn luồng chính
+
     }
   }, [isAudioUnlocked]);
 
@@ -175,7 +175,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('pos_notifications');
   }, []);
 
-  // Lắng nghe món hoàn thành
+
   useEffect(() => {
     if (!socket) return;
 
@@ -201,7 +201,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
       playNotificationSound();
 
-      // Cập nhật số lượng đơn chờ duyệt để hiện badge ở tab "Duyệt Đơn"
+
       setPendingOrdersCount(prev => prev + 1);
     };
 
@@ -226,7 +226,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // --- SOCKET REALTIME CHO TRẠNG THÁI MÓN & CA LÀM VIỆC ---
+
   useEffect(() => {
     if (!socket) return;
 
@@ -292,8 +292,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCarts((prev) => {
       const tableId = selectedTable.id;
       const currentTableCart = prev[tableId] || [];
-      const existingItemIndex = currentTableCart.findIndex((item) => 
-        (newItem.id_mon_an && item.id_mon_an === newItem.id_mon_an) || 
+      const existingItemIndex = currentTableCart.findIndex((item) =>
+        (newItem.id_mon_an && item.id_mon_an === newItem.id_mon_an) ||
         (newItem.id_combo && item.id_combo === newItem.id_combo)
       );
 

@@ -6,7 +6,7 @@ import { banAnService } from '@/services/banAn.service';
 import { hoaDonService } from '@/services/hoaDon.service';
 import { BanAn, TrangThaiBan } from '@/types/banAn';
 import { usePos } from '@/context/PosContext';
-import { io } from 'socket.io-client';
+import { useSocket } from '@/context/SocketContext';
 
 export default function TableGrid() {
     const { selectedTable, setSelectedTable } = usePos();
@@ -35,15 +35,22 @@ export default function TableGrid() {
         fetchTables().finally(() => setLoading(false));
     }, []);
 
+    const { socket } = useSocket();
+    
     useEffect(() => {
-        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+        if (!socket) return;
+        
         socket.on('cap_nhat_trang_thai_ban', (payload: { id_ban: string, trang_thai_ban: TrangThaiBan }) => {
+            console.log("🔄 Socket: Cập nhật trạng thái bàn:", payload);
             setTables(prev => prev.map(t => 
                 t.id === payload.id_ban ? { ...t, trang_thai_ban: payload.trang_thai_ban } : t
             ));
         });
-        return () => { socket.disconnect(); };
-    }, []);
+
+        return () => { 
+            socket.off('cap_nhat_trang_thai_ban');
+        };
+    }, [socket]);
 
     const getStatusText = (status: TrangThaiBan) => {
         switch (status) {
@@ -84,7 +91,9 @@ export default function TableGrid() {
                 alert(`Đã gộp ${source.so_ban} vào ${targetTable.so_ban}`);
             }
             setActionState({ type: null, sourceTable: null });
-            fetchTables();
+            await fetchTables();
+            // Tự động chọn bàn đích sau khi chuyển/gộp để xem hóa đơn mới
+            setSelectedTable({ id: targetTable.id, so_ban: targetTable.so_ban });
         } catch (err: any) {
             alert(err.message || "Thao tác thất bại");
         } finally {

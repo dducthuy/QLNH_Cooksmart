@@ -44,21 +44,21 @@ exports.taoBanAn = async (req, res, next) => {
             return next(new AppError("Vui lòng nhập số bàn!", 400));
         }
 
-        // Kiểm tra trang thái hợp lệ
+        
         if (trang_thai_ban && !TRANG_THAI_HOP_LE.includes(trang_thai_ban)) {
             return next(new AppError(`Trạng thái bàn không hợp lệ! Chỉ chấp nhận: ${TRANG_THAI_HOP_LE.join(", ")}`, 400));
         }
 
-        // Kiểm tra trùng số bàn
+        
         const daTonTai = await BanAn.findOne({ where: { so_ban: so_ban.trim() } });
         if (daTonTai) {
             return next(new AppError(`Bàn số "${so_ban.trim()}" đã tồn tại!`, 409));
         }
 
         const banAnMoi = await BanAn.create({
-            so_ban:       so_ban.trim(),
-            vi_tri:       vi_tri       || null,
-            ma_qr_code:   ma_qr_code   || null,
+            so_ban: so_ban.trim(),
+            vi_tri: vi_tri || null,
+            ma_qr_code: ma_qr_code || null,
             trang_thai_ban: trang_thai_ban || "Trong",
         });
 
@@ -82,12 +82,12 @@ exports.capNhatBanAn = async (req, res, next) => {
 
         const { so_ban, vi_tri, ma_qr_code, trang_thai_ban } = req.body;
 
-        // Kiểm tra trạng thái hợp lệ
+        
         if (trang_thai_ban && !TRANG_THAI_HOP_LE.includes(trang_thai_ban)) {
             return next(new AppError(`Trạng thái bàn không hợp lệ! Chỉ chấp nhận: ${TRANG_THAI_HOP_LE.join(", ")}`, 400));
         }
 
-        // Kiểm tra trùng số bàn với bàn KHÁC
+        
         if (so_ban && so_ban.trim() !== banAn.so_ban) {
             const daTonTai = await BanAn.findOne({ where: { so_ban: so_ban.trim() } });
             if (daTonTai && daTonTai.id !== banAn.id) {
@@ -96,21 +96,21 @@ exports.capNhatBanAn = async (req, res, next) => {
         }
 
         await banAn.update({
-            so_ban:         so_ban         !== undefined ? so_ban.trim()    : banAn.so_ban,
-            vi_tri:         vi_tri         !== undefined ? vi_tri           : banAn.vi_tri,
-            ma_qr_code:     ma_qr_code     !== undefined ? ma_qr_code       : banAn.ma_qr_code,
-            trang_thai_ban: trang_thai_ban !== undefined ? trang_thai_ban   : banAn.trang_thai_ban,
+            so_ban: so_ban !== undefined ? so_ban.trim() : banAn.so_ban,
+            vi_tri: vi_tri !== undefined ? vi_tri : banAn.vi_tri,
+            ma_qr_code: ma_qr_code !== undefined ? ma_qr_code : banAn.ma_qr_code,
+            trang_thai_ban: trang_thai_ban !== undefined ? trang_thai_ban : banAn.trang_thai_ban,
         });
 
-   
+
         if (trang_thai_ban !== undefined) {
-             const io = req.app.get("socketio");
-             if (io) {
-                 io.emit("cap_nhat_trang_thai_ban", {
-                     id_ban: banAn.id,
-                     trang_thai_ban: banAn.trang_thai_ban
-                 });
-             }
+            const io = req.app.get("socketio");
+            if (io) {
+                io.emit("cap_nhat_trang_thai_ban", {
+                    id_ban: banAn.id,
+                    trang_thai_ban: banAn.trang_thai_ban
+                });
+            }
         }
 
 
@@ -133,11 +133,11 @@ exports.sinhMaQR = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy bàn ăn với ID: ${req.params.id}`, 404));
         }
 
-        // URL mà khách hàng sẽ được điều hướng đến khi quét QR
+
         const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:3000";
         const orderUrl = `${baseUrl}/order?tableId=${banAn.id}`;
 
-        // Sinh ảnh QR dạng Data URL (base64 PNG)
+
         const qrDataUrl = await QRCode.toDataURL(orderUrl, {
             errorCorrectionLevel: "H",
             margin: 2,
@@ -167,7 +167,7 @@ exports.xoaBanAn = async (req, res, next) => {
             return next(new AppError(`Không tìm thấy bàn ăn với ID: ${req.params.id}`, 404));
         }
 
-        // Chặn xóa bàn đang phục vụ
+
         if (banAn.trang_thai_ban === "DangPhucVu") {
             return next(new AppError(`Không thể xóa bàn "${banAn.so_ban}" đang có khách!`, 400));
         }

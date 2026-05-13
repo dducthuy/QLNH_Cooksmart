@@ -192,9 +192,9 @@ export default function ComboManagementPage() {
                         combo={editingCombo}
                         dishes={dishes}
                         onClose={() => setIsFormOpen(false)}
-                        onSuccess={() => { 
-                            setIsFormOpen(false); 
-                            fetchData(); 
+                        onSuccess={() => {
+                            setIsFormOpen(false);
+                            fetchData();
                             if (socket) socket.emit('cap_nhat_menu');
                         }}
                         showToast={showToast}
@@ -265,7 +265,7 @@ export default function ComboManagementPage() {
     );
 }
 
-// ─── Combo Form Component ───────────────────────────────────────────────────
+
 function ComboForm({ combo, dishes, onClose, onSuccess, showToast }: any) {
     const [formData, setFormData] = useState<any>(combo ? {
         ...combo,
@@ -411,7 +411,7 @@ function ComboForm({ combo, dishes, onClose, onSuccess, showToast }: any) {
                         </div>
                         <input type="checkbox" className="hidden" checked={formData.trang_thai} onChange={e => setFormData({ ...formData, trang_thai: e.target.checked })} />
                         <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">
-                            Đang hoạt động / Sẵn sàng phục vụ
+                            Sẵn sàng phục vụ
                         </span>
                     </label>
                 </div>

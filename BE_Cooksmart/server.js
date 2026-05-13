@@ -6,10 +6,10 @@ const app = require("./src/app");
 const { Server } = require("socket.io");
 const db = require("./src/models/index");
 
-// 1. Khởi tạo Server HTTP
+
 const server = http.createServer(app);
 
-// 2. Khởi tạo Socket.io với CORS
+
 const io = new Server(server, {
     cors: {
         origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -20,16 +20,16 @@ const io = new Server(server, {
 
 app.set("socketio", io);
 
-// ===================== THEO DÕI USER ONLINE =====================
-// Map: userId → Set<socketId>
+
+
 const onlineUsers = new Map();
 app.set("onlineUsers", onlineUsers);
 
-// 3. Xử lý sự kiện Socket.io Real-time
+
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
 
-    // --- Đăng ký user online ---
+    
     socket.on("dang_nhap", (userId) => {
         if (!userId) return;
         socket.userId = userId;
@@ -39,7 +39,7 @@ io.on("connection", (socket) => {
         }
         onlineUsers.get(userId).add(socket.id);
 
-        // Phát sự kiện cho tất cả client biết user này vừa online
+        
         io.emit("user_online", { userId });
         console.log(`🟢 User ${userId} online (${onlineUsers.get(userId).size} kết nối)`);
     });
@@ -95,7 +95,7 @@ server.listen(PORT, () => {
 
 
 db.sequelize
-    .sync() // Bỏ { alter: true } để tránh tạo nhiều index khóa ngoại bị trùng lặp
+    .sync() 
     .then(() => {
         console.log("✅ Đồng bộ Database hoàn tất – tất cả 13 bảng sẵn sàng!");
     })

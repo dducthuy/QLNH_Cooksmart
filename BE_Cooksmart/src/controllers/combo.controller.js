@@ -1,7 +1,7 @@
 const { Combo, ChiTietCombo, MonAn, sequelize } = require("../models");
 const AppError = require("../utils/AppError");
 
-// Lấy tất cả combo (có token — dành cho nhân viên/admin)
+
 exports.layTatCaCombo = async (req, res, next) => {
     try {
         const combos = await Combo.findAll({
@@ -23,7 +23,7 @@ exports.layTatCaCombo = async (req, res, next) => {
     }
 };
 
-// Lấy tất cả combo PUBLIC (không cần token — dành cho trang QR khách hàng)
+
 exports.layTatCaComboPublic = async (req, res, next) => {
     try {
         const combos = await Combo.findAll({
@@ -46,7 +46,7 @@ exports.layTatCaComboPublic = async (req, res, next) => {
     }
 };
 
-// Lấy chi tiết 1 combo theo ID
+
 exports.layChiTietCombo = async (req, res, next) => {
     try {
         const combo = await Combo.findByPk(req.params.id, {
@@ -69,7 +69,7 @@ exports.layChiTietCombo = async (req, res, next) => {
     }
 };
 
-// Tạo combo mới (Admin)
+
 exports.taoCombo = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
@@ -103,7 +103,7 @@ exports.taoCombo = async (req, res, next) => {
             }]
         });
 
-        // Phát socket event để thông báo combo được tạo
+        
         const io = req.app.get("socketio");
         if (io) {
             io.emit("cap_nhat_combo", { id: combo.id, message: "Combo mới được tạo" });
@@ -116,7 +116,7 @@ exports.taoCombo = async (req, res, next) => {
     }
 };
 
-// Cập nhật combo (Admin)
+
 exports.capNhatCombo = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
@@ -130,7 +130,7 @@ exports.capNhatCombo = async (req, res, next) => {
 
         await combo.update({ ten_combo, gia_tien, hinh_anh_combo, mo_ta, trang_thai }, { transaction: t });
 
-        // Nếu có cập nhật chi tiết combo
+        
         if (chi_tiet_combo && Array.isArray(chi_tiet_combo)) {
             await ChiTietCombo.destroy({ where: { id_combo: combo.id }, transaction: t });
             if (chi_tiet_combo.length > 0) {
@@ -145,7 +145,7 @@ exports.capNhatCombo = async (req, res, next) => {
 
         await t.commit();
 
-        // Trả về combo đã được cập nhật
+        
         const result = await Combo.findByPk(combo.id, {
             include: [{ 
                 model: ChiTietCombo, 
@@ -154,7 +154,7 @@ exports.capNhatCombo = async (req, res, next) => {
             }]
         });
 
-        // Phát socket event để thông báo combo được cập nhật
+        
         const io = req.app.get("socketio");
         if (io) {
             io.emit("cap_nhat_combo", { id: combo.id, message: "Combo đã được cập nhật" });
@@ -167,17 +167,17 @@ exports.capNhatCombo = async (req, res, next) => {
     }
 };
 
-// Xóa / Ẩn combo (Admin)
+
 exports.xoaCombo = async (req, res, next) => {
     try {
         const combo = await Combo.findByPk(req.params.id);
         if (!combo) return next(new AppError("Combo không tồn tại", 404));
 
-        // Thực hiện xóa cứng (Xóa khỏi DB)
-        // Lưu ý: Nếu combo đã có trong hóa đơn, Sequelize sẽ báo lỗi FK (điều này là tốt để giữ lịch sử)
+        
+        
         await combo.destroy();
 
-        // Phát socket event để thông báo combo được xóa
+        
         const io = req.app.get("socketio");
         if (io) {
             io.emit("cap_nhat_combo", { id: combo.id, message: "Combo đã được xóa" });

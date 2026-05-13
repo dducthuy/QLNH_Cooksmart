@@ -42,7 +42,7 @@ exports.dangNhap = async (req, res, next) => {
             vai_tro: nguoiDung.vai_tro,
         });
 
-        // Ẩn mật khẩu trước khi trả về
+        
         nguoiDung.mat_khau = undefined;
 
         res.status(200).json({
@@ -85,7 +85,7 @@ exports.taoTaiKhoan = async (req, res, next) => {
             return next(new AppError("Tên đăng nhập đã tồn tại! Vui lòng chọn tên khác.", 400));
         }
 
-        // 3. Tạo người dùng mới (Mật khẩu sẽ được tự động hash nhờ hook beforeCreate trong NguoiDung model)
+        
         const nguoiDungMoi = await NguoiDung.create({
             ten_dang_nhap,
             mat_khau,
@@ -93,7 +93,7 @@ exports.taoTaiKhoan = async (req, res, next) => {
             vai_tro,
         });
 
-        // 4. Trả về phản hồi (Ẩn mật khẩu)
+
         nguoiDungMoi.mat_khau = undefined;
 
         res.status(201).json({

@@ -72,27 +72,27 @@ exports.taoDanhMuc = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/danh-muc/:id
-//  Admin only – Cập nhật tên danh mục
-// ============================================================
+
+
+
+
 exports.capNhatDanhMuc = async (req, res, next) => {
     try {
         const { ten_danh_muc } = req.body;
 
-        // [1] Kiểm tra đầu vào
+        
         if (!ten_danh_muc || !ten_danh_muc.trim()) {
             return next(new AppError("Vui lòng nhập tên danh mục mới!", 400));
         }
 
-        // [2] Tìm danh mục cần sửa
+        
         const danhMuc = await DanhMuc.findByPk(req.params.id);
 
         if (!danhMuc) {
             return next(new AppError(`Không tìm thấy danh mục với ID: ${req.params.id}`, 404));
         }
 
-        // [3] Kiểm tra trùng tên với danh mục KHÁC
+        
         const daTonTai = await DanhMuc.findOne({
             where: { ten_danh_muc: ten_danh_muc.trim() },
         });
@@ -101,7 +101,7 @@ exports.capNhatDanhMuc = async (req, res, next) => {
             return next(new AppError(`Danh mục "${ten_danh_muc.trim()}" đã tồn tại!`, 409));
         }
 
-        // [4] Cập nhật
+        
         await danhMuc.update({ ten_danh_muc: ten_danh_muc.trim() });
 
         res.status(200).json({
@@ -114,21 +114,21 @@ exports.capNhatDanhMuc = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/danh-muc/:id
-//  Admin only – Xóa danh mục
-//  ⚠️ Nếu còn món ăn thuộc danh mục → từ chối xóa (tránh mồ côi dữ liệu)
-// ============================================================
+
+
+
+
+
 exports.xoaDanhMuc = async (req, res, next) => {
     try {
-        // [1] Tìm danh mục
+        
         const danhMuc = await DanhMuc.findByPk(req.params.id);
 
         if (!danhMuc) {
             return next(new AppError(`Không tìm thấy danh mục với ID: ${req.params.id}`, 404));
         }
 
-        // [2] Kiểm tra còn món ăn thuộc danh mục này không
+        
         const soMonAn = await MonAn.count({
             where: { id_danh_muc: req.params.id },
         });
@@ -142,7 +142,7 @@ exports.xoaDanhMuc = async (req, res, next) => {
             );
         }
 
-        // [3] Xóa
+        
         const tenDanhMuc = danhMuc.ten_danh_muc;
         await danhMuc.destroy();
 

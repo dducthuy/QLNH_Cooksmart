@@ -48,5 +48,10 @@ export const hoaDonService = {
 
     async gopBan(id_hoa_don_nguon: string, id_hoa_don_dich: string): Promise<void> {
         await http.post('/hoa-don/noi-bo/gop-ban', { id_hoa_don_nguon, id_hoa_don_dich });
+    },
+
+    async getActiveByTable(id_ban: string): Promise<HoaDon | null> {
+        const response = await http.get<any>(`/hoa-don/khach-hang/ban/${id_ban}`);
+        return response.data.data;
     }
 };

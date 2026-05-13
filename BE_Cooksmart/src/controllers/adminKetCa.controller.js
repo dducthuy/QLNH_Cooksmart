@@ -6,7 +6,7 @@ const { Op } = require("sequelize");
 exports.layLichSuCa = async (req, res, next) => {
     try {
         const {
-            status,      // "open" | "closed"
+            status,      
             userId,
             tuNgay,
             denNgay,
@@ -16,7 +16,7 @@ exports.layLichSuCa = async (req, res, next) => {
 
         const whereClause = {};
 
-        // Lọc theo trạng thái
+        
         if (status === "open") {
             whereClause.trang_thai_ca = "DangChay";
         } else if (status === "closed") {
@@ -76,7 +76,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        // Lấy thông tin ca và nhân viên trực
+
         const caLamViec = await KetCa.findByPk(id, {
             include: [
                 {
@@ -96,14 +96,14 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
             return next(new AppError("Ca làm việc không tồn tại", 404));
         }
 
-        // Thống kê doanh thu từ bảng HoaDon trong ca này
+
         const thongKeDoanhThu = await HoaDon.findAll({
             where: {
                 id_ket_ca: id,
                 trang_thai_hd: "DaThanhToan",
             },
             attributes: [
-                // Tổng doanh thu tiền mặt
+                
                 [
                     sequelize.fn(
                         "SUM",
@@ -113,7 +113,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     ),
                     "tong_tien_mat",
                 ],
-                // Tổng doanh thu chuyển khoản
+                
                 [
                     sequelize.fn(
                         "SUM",
@@ -123,9 +123,9 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     ),
                     "tong_chuyen_khoan",
                 ],
-                // Tổng số hóa đơn
+                
                 [sequelize.fn("COUNT", sequelize.col("id")), "tong_so_don"],
-                // Tổng doanh thu sau giảm giá
+                
                 [
                     sequelize.fn(
                         "SUM",
@@ -206,11 +206,11 @@ exports.kiemDuyetCa = async (req, res, next) => {
     }
 };
 
-// =======================================================
-// [4] THỐNG KÊ TỔNG QUAN – GET /api/admin/shifts/dashboard-summary
-//     Tổng hợp doanh thu và chênh lệch của tất cả ca đã đóng
-//     trong khoảng thời gian nhất định (dùng Sequelize.fn)
-// =======================================================
+
+
+
+
+
 exports.layTongQuanDashboard = async (req, res, next) => {
     try {
         const { tuNgay, denNgay } = req.query;
@@ -231,28 +231,28 @@ exports.layTongQuanDashboard = async (req, res, next) => {
             }
         }
 
-        // Dùng Sequelize.fn để tính tổng hợp từ bảng KetCa
+        
         const tongQuan = await KetCa.findAll({
             where: whereClause,
             attributes: [
-                // Tổng số ca đã đóng
+                
                 [sequelize.fn("COUNT", sequelize.col("KetCa.id")), "tong_so_ca"],
-                // Tổng doanh thu tiền mặt (theo hệ thống)
+                
                 [
                     sequelize.fn("SUM", sequelize.col("tong_tien_mat_he_thong")),
                     "tong_doanh_thu_tien_mat",
                 ],
-                // Tổng doanh thu chuyển khoản (theo hệ thống)
+                
                 [
                     sequelize.fn("SUM", sequelize.col("tong_chuyen_khoan_he_thong")),
                     "tong_doanh_thu_chuyen_khoan",
                 ],
-                // Tổng tiền chênh lệch (âm = thiếu, dương = thừa)
+                
                 [
                     sequelize.fn("SUM", sequelize.col("tien_chenh_lech")),
                     "tong_chenh_lech",
                 ],
-                // Tổng tiền đầu ca (vốn ban đầu)
+                
                 [
                     sequelize.fn("SUM", sequelize.col("tien_dau_ca")),
                     "tong_tien_dau_ca",
@@ -261,7 +261,7 @@ exports.layTongQuanDashboard = async (req, res, next) => {
             raw: true,
         });
 
-        // Thống kê ca chưa được kiểm duyệt
+        
         const soCaChuaKiemDuyet = await KetCa.count({
             where: {
                 ...whereClause,

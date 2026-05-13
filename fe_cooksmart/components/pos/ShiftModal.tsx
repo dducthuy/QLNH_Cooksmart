@@ -40,7 +40,7 @@ export default function ShiftModal({ isOpen, onClose, mode, currentShiftData, on
 
     const handleCashChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, '');
-        // Loại bỏ số 0 ở đầu nếu có nhiều hơn 1 chữ số
+      
         const cleanVal = val.replace(/^0+/, '');
         setCashInput(cleanVal === '' && val !== '' ? '0' : cleanVal);
     };

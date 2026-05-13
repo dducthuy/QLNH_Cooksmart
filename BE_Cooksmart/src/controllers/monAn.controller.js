@@ -25,10 +25,10 @@ exports.layTatCaMonAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  GET /api/mon-an/:id
-//  Public – Lấy chi tiết một món ăn
-// ============================================================
+
+
+
+
 exports.layMonAnTheoId = async (req, res, next) => {
     try {
         const monAn = await MonAn.findByPk(req.params.id, {
@@ -46,15 +46,15 @@ exports.layMonAnTheoId = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  POST /api/mon-an
-//  Admin only – Tạo món ăn mới
-// ============================================================
+
+
+
+
 exports.taoMonAn = async (req, res, next) => {
     try {
         const { ten_mon, gia_tien, id_danh_muc, hinh_anh_mon, mo_ta_ai } = req.body;
 
-        // [1] Validate bắt buộc
+        
         if (!ten_mon || !ten_mon.trim()) {
             return next(new AppError("Vui lòng nhập tên món ăn!", 400));
         }
@@ -62,7 +62,7 @@ exports.taoMonAn = async (req, res, next) => {
             return next(new AppError("Giá tiền không hợp lệ!", 400));
         }
 
-        // [2] Kiểm tra danh mục tồn tại (nếu truyền vào)
+        
         if (id_danh_muc) {
             const danhMuc = await DanhMuc.findByPk(id_danh_muc);
             if (!danhMuc) {
@@ -70,13 +70,13 @@ exports.taoMonAn = async (req, res, next) => {
             }
         }
 
-        // [3] Kiểm tra trùng tên
+        
         const daTonTai = await MonAn.findOne({ where: { ten_mon: ten_mon.trim() } });
         if (daTonTai) {
             return next(new AppError(`Món ăn "${ten_mon.trim()}" đã tồn tại!`, 409));
         }
 
-        // [4] Tạo mới
+        
         const monAnMoi = await MonAn.create({
             ten_mon: ten_mon.trim(),
             gia_tien: Number(gia_tien),
@@ -98,10 +98,10 @@ exports.taoMonAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  PATCH /api/mon-an/:id
-//  Admin only – Cập nhật thông tin món ăn
-// ============================================================
+
+
+
+
 exports.capNhatMonAn = async (req, res, next) => {
     try {
         const monAn = await MonAn.findByPk(req.params.id);
@@ -111,7 +111,7 @@ exports.capNhatMonAn = async (req, res, next) => {
 
         const { ten_mon, gia_tien, id_danh_muc, hinh_anh_mon, mo_ta_ai, con_hang } = req.body;
 
-        // Kiểm tra danh mục nếu có thay đổi
+        
         if (id_danh_muc) {
             const danhMuc = await DanhMuc.findByPk(id_danh_muc);
             if (!danhMuc) {
@@ -119,7 +119,7 @@ exports.capNhatMonAn = async (req, res, next) => {
             }
         }
 
-        // Kiểm tra trùng tên với món KHÁC
+        
         if (ten_mon && ten_mon.trim() !== monAn.ten_mon) {
             const daTonTai = await MonAn.findOne({ where: { ten_mon: ten_mon.trim() } });
             if (daTonTai && daTonTai.id !== monAn.id) {
@@ -127,7 +127,7 @@ exports.capNhatMonAn = async (req, res, next) => {
             }
         }
 
-        // Chỉ cập nhật các field được gửi lên
+        
         await monAn.update({
             ten_mon:      ten_mon      !== undefined ? ten_mon.trim()     : monAn.ten_mon,
             gia_tien:     gia_tien     !== undefined ? Number(gia_tien)   : monAn.gia_tien,
@@ -150,10 +150,10 @@ exports.capNhatMonAn = async (req, res, next) => {
     }
 };
 
-// ============================================================
-//  DELETE /api/mon-an/:id
-//  Admin only – Xóa món ăn
-// ============================================================
+
+
+
+
 exports.xoaMonAn = async (req, res, next) => {
     try {
         const monAn = await MonAn.findByPk(req.params.id);

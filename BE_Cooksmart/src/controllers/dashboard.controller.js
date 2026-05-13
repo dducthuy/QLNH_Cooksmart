@@ -6,7 +6,7 @@ exports.getDashboardTongQuan = async (req, res, next) => {
     try {
         const { ngay } = req.query;
 
-        // Xác định khoảng thời gian đầu ngày và cuối ngày
+
         let startDate, endDate;
         if (ngay) {
             startDate = new Date(ngay);
@@ -25,8 +25,7 @@ exports.getDashboardTongQuan = async (req, res, next) => {
             [Op.between]: [startDate, endDate],
         };
 
-        // --- 1. Thống kê nhanh ---
-        // Tổng doanh thu và số đơn
+
         const tongDoanhThuData = await HoaDon.sum('tong_tien', {
             where: {
                 trang_thai_hd: 'DaThanhToan',
@@ -42,19 +41,19 @@ exports.getDashboardTongQuan = async (req, res, next) => {
             }
         });
 
-        // Lấp đầy bàn
+
         const tongBan = await BanAn.count();
         const banDangPhucVu = await BanAn.count({
             where: { trang_thai_ban: 'DangPhucVu' }
         });
         const tyLeLapDayBan = tongBan > 0 ? Math.round((banDangPhucVu / tongBan) * 100) : 0;
 
-        // Món dừng bán
+
         const monDungBan = await MonAn.count({
             where: { con_hang: false }
         });
 
-        // --- 2. Doanh thu theo giờ ---
+
         const hoaDons = await HoaDon.findAll({
             attributes: ['tong_tien', 'thoi_gian_tao'],
             where: {
@@ -70,7 +69,7 @@ exports.getDashboardTongQuan = async (req, res, next) => {
         hoaDons.forEach(hd => {
             const date = new Date(hd.thoi_gian_tao);
             const hour = date.getHours();
-            
+
             if (hour >= 6 && hour < 10) hourlyData['08:00'] += Number(hd.tong_tien);
             else if (hour >= 10 && hour < 12) hourlyData['10:00'] += Number(hd.tong_tien);
             else if (hour >= 12 && hour < 14) hourlyData['12:00'] += Number(hd.tong_tien);
@@ -86,7 +85,7 @@ exports.getDashboardTongQuan = async (req, res, next) => {
             total: hourlyData[time]
         }));
 
-        // --- 3. Top 5 món bán chạy ---
+
         const chiTiets = await ChiTietHoaDon.findAll({
             include: [
                 {
