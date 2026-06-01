@@ -6,17 +6,19 @@ const { baoVe, phanQuyen } = require("../middlewares/baoVe");
 
 router.post("/noi-bo", baoVe, phanQuyen("Admin", "PhucVu", "ThuNgan"), hoaDonController.taoHoaDon);
 
-
 router.get("/noi-bo", baoVe, phanQuyen("Admin", "PhucVu", "Bep", "ThuNgan"), hoaDonController.layTatCaHoaDon);
 
+router.get("/noi-bo/lich-su-bep", baoVe, phanQuyen("Admin", "PhucVu", "Bep", "ThuNgan"), hoaDonController.lichSuBep);
 
 router.get("/noi-bo/:id", baoVe, phanQuyen("Admin", "PhucVu", "Bep", "ThuNgan"), hoaDonController.layChiTietHoaDon);
 
-
 router.patch("/noi-bo/:id/trang-thai", baoVe, phanQuyen("Admin", "PhucVu", "ThuNgan"), hoaDonController.capNhatTrangThaiHoaDon);
 
-
+// Cập nhật trạng thái món (DangCho | DangNau | DaXong | DaLayDi)
 router.patch("/noi-bo/chi-tiet/:id/trang-thai", baoVe, phanQuyen("Admin", "PhucVu", "Bep"), hoaDonController.capNhatTrangThaiMon);
+
+// Lấy tất cả món DaXong của 1 hóa đơn → DaLayDi
+router.post("/noi-bo/:id/lay-tat-ca", baoVe, phanQuyen("Admin", "PhucVu", "Bep"), hoaDonController.layTatCaMon);
 
 router.post("/noi-bo/chuyen-ban", baoVe, phanQuyen("Admin", "PhucVu", "ThuNgan"), hoaDonController.chuyenBan);
 router.post("/noi-bo/gop-ban", baoVe, phanQuyen("Admin", "PhucVu", "ThuNgan"), hoaDonController.gopBan);

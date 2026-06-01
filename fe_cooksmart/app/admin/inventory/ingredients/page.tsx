@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { PackageSearch, AlertCircle, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { PackageSearch, AlertCircle, Edit2, Trash2, Loader2, Search, RefreshCw, X } from 'lucide-react';
 import { nguyenLieuService } from '@/services/nguyenLieu.service';
 import { loaiNguyenLieuService } from '@/services/loaiNguyenLieu.service';
 import { NguyenLieu } from '@/types/nguyenLieu';
@@ -66,7 +66,7 @@ export default function IngredientsPage() {
                 don_vi_tinh: data.don_vi_tinh || null,
                 so_luong_ton: Number(data.so_luong_ton || 0),
                 gia_nhap_gan_nhat: Number(data.gia_nhap_gan_nhat || 0),
-                loai_quan_ly: 'THU_CONG' as const
+                loai_quan_ly: data.loai_quan_ly || 'THU_CONG'
             };
 
             if (modal === 'edit' && selected) {
@@ -108,6 +108,8 @@ export default function IngredientsPage() {
 
     const lowStockCount = ingredients.filter(i => Number(i.so_luong_ton) <= 5).length;
 
+    const UNITS = ['g', 'kg', 'ml', 'lít', 'cái', 'quả', 'chai', 'lon', 'phần', 'hộp'];
+
     const ingredientFields: FormField[] = [
         { key: 'ten_nguyen_lieu', label: 'Tên Nguyên Liệu', type: 'text', placeholder: 'VD: Thịt bò bít tết', required: true },
         {
@@ -116,7 +118,24 @@ export default function IngredientsPage() {
             type: 'select',
             options: categories.map(c => ({ value: c.id, label: c.ten_loai }))
         },
-        { key: 'don_vi_tinh', label: 'Đơn Vị Tính', type: 'text', placeholder: 'VD: Kg, Lít' },
+        { 
+            key: 'don_vi_tinh', 
+            label: 'Đơn Vị Tính', 
+            type: 'select', 
+            options: [
+                { value: '', label: '-- Chọn đơn vị --' },
+                ...UNITS.map(u => ({ value: u, label: u }))
+            ]
+        },
+        {
+            key: 'loai_quan_ly',
+            label: 'Loại Quản Lý Kho',
+            type: 'select',
+            options: [
+                { value: 'TU_DONG', label: 'Tự động trừ kho' },
+                { value: 'THU_CONG', label: 'Cập nhật thủ công' }
+            ]
+        },
         { key: 'so_luong_ton', label: 'Số Lượng Tồn', type: 'number', placeholder: '0' },
         { key: 'gia_nhap_gan_nhat', label: 'Giá Nhập Gần Nhất (VNĐ)', type: 'number', placeholder: '0' },
     ];
@@ -129,23 +148,54 @@ export default function IngredientsPage() {
                 icon={<PackageSearch size={22} className="text-white" />}
                 title="Quản Lý Nguyên Liệu"
                 subtitle={`${ingredients.length} mặt hàng • ${lowStockCount} sắp hết`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm tên nguyên liệu..."
-                onRefresh={fetchData}
-                isLoading={isLoading}
                 onAdd={() => { setSelected(null); setModal('add'); }}
                 addLabel="Thêm Mới"
             />
 
-            <AdminFilterTabs
-                tabs={[
-                    { value: 'all', label: 'Tất cả loại nguyên liệu' },
-                    ...categories.map(c => ({ value: c.id, label: c.ten_loai }))
-                ]}
-                active={selectedCategory}
-                onChange={setSelectedCategory}
-            />
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Danh mục:</label>
+                        <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="w-full sm:w-48 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            <option value="all">Tất cả danh mục</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.id}>{c.ten_loai}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm tên nguyên liệu..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    {(searchTerm || selectedCategory !== 'all') && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <AdminTableCard icon={<PackageSearch size={16} />} title="Danh Sách Nguyên Liệu" count={filtered.length}>
                 <div className="overflow-x-auto">
@@ -207,10 +257,10 @@ export default function IngredientsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right text-[#d9a01e] font-bold">
-                                            {Number(item.gia_von_binh_quan || 0).toLocaleString()} đ
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.gia_von_binh_quan || 0))}
                                         </td>
                                         <td className="px-6 py-4 text-right text-gray-400 font-medium text-xs">
-                                            {Number(item.gia_nhap_gan_nhat || 0).toLocaleString()} đ
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.gia_nhap_gan_nhat || 0))}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-1.5">
@@ -245,7 +295,11 @@ export default function IngredientsPage() {
                         <DynamicForm
                             title={modal === 'edit' ? 'Chỉnh Sửa Nguyên Liệu' : 'Thêm Nguyên Liệu Mới'}
                             fields={ingredientFields}
-                            initialData={modal === 'edit' ? selected : {}}
+                            initialData={modal === 'edit' && selected ? {
+                                ...selected,
+                                so_luong_ton: Number(selected.so_luong_ton || 0),
+                                gia_nhap_gan_nhat: Number(selected.gia_nhap_gan_nhat || 0)
+                            } : {}}
                             onSubmit={handleFormSubmit}
                             onCancel={closeModal}
                             isLoading={isSubmitting}

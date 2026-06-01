@@ -9,12 +9,16 @@ import {
     PackageSearch,
     Printer,
     Save,
+    Search,
+    RefreshCw,
     X,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { nguyenLieuService } from '@/services/nguyenLieu.service';
 import { khoService } from '@/services/kho.service';
+import { loaiNguyenLieuService } from '@/services/loaiNguyenLieu.service';
 import { NguyenLieu } from '@/types/nguyenLieu';
+import { LoaiNguyenLieu } from '@/types/loaiNguyenLieu';
 import { PhieuKiemKeSummary } from '@/types/kho';
 import {
     AdminModal,
@@ -34,8 +38,11 @@ const formatMoney = (value: number | string | null | undefined) =>
 
 export default function StockAuditPage() {
     const [ingredients, setIngredients] = useState<NguyenLieu[]>([]);
+    const [categories, setCategories] = useState<LoaiNguyenLieu[]>([]);
     const [audits, setAudits] = useState<PhieuKiemKeSummary[]>([]);
     const [lines, setLines] = useState<AuditLine[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedAudit, setSelectedAudit] = useState<PhieuKiemKeDetail | null>(null);
@@ -46,12 +53,14 @@ export default function StockAuditPage() {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [ingredientRes, auditRes] = await Promise.all([
+            const [ingredientRes, auditRes, catRes] = await Promise.all([
                 nguyenLieuService.getAll(),
                 khoService.layDanhSachPhieuKiemKe(),
+                loaiNguyenLieuService.getAll(),
             ]);
             const loadedIngredients = ingredientRes.data || [];
             setIngredients(loadedIngredients);
+            setCategories(catRes.data || []);
             setAudits(auditRes.data || []);
             setLines(loadedIngredients.map((item) => ({
                 id_nguyen_lieu: item.id,
@@ -97,14 +106,22 @@ export default function StockAuditPage() {
         };
     });
 
-    const changedRows = auditRows.filter((row) => row.ingredient && row.actualQuantity >= 0);
+    const changedRows = auditRows.filter((row) => row.ingredient && row.actualQuantity >= 0 && row.actualQuantity !== row.systemQuantity);
     const totalDifference = auditRows.reduce((sum, row) => sum + row.difference, 0);
     const totalLossValue = auditRows.reduce((sum, row) => sum + row.lossValue, 0);
+
+    const displayAuditRows = auditRows.filter(row => {
+        const matchSearch = row.ingredient?.ten_nguyen_lieu.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchCategory = selectedCategory === 'all' || row.ingredient?.id_loai_nguyen_lieu === selectedCategory;
+        return matchSearch && matchCategory;
+    });
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (changedRows.length === 0) {
+        const submitRows = auditRows.filter((row) => row.ingredient && row.actualQuantity >= 0);
+
+        if (submitRows.length === 0) {
             showToast('Không có nguyên liệu để kiểm kê', 'error');
             return;
         }
@@ -112,7 +129,7 @@ export default function StockAuditPage() {
         try {
             setIsSubmitting(true);
             await khoService.kiemKeKho({
-                items: changedRows.map((row) => ({
+                items: submitRows.map((row) => ({
                     id_nguyen_lieu: row.id_nguyen_lieu,
                     so_luong_thuc_te: row.actualQuantity,
                 })),
@@ -188,10 +205,52 @@ export default function StockAuditPage() {
                 icon={<ClipboardCheck size={22} className="text-white" />}
                 title="Kiểm Kê Kho"
                 subtitle={`${ingredients.length} nguyên liệu - chênh lệch ${totalDifference.toLocaleString('vi-VN')}`}
-                hideSearch
-                onRefresh={fetchData}
-                isLoading={isLoading}
             />
+
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Danh mục:</label>
+                        <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="w-full sm:w-48 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            <option value="all">Tất cả loại nguyên liệu</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.id}>{c.ten_loai}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm tên nguyên liệu..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    {(searchTerm || selectedCategory !== 'all') && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -223,13 +282,13 @@ export default function StockAuditPage() {
                                         <Loader2 size={34} className="mx-auto animate-spin text-[#d9a01e]" />
                                     </td>
                                 </tr>
-                            ) : auditRows.length === 0 ? (
+                            ) : displayAuditRows.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-16 text-center text-sm text-gray-400 font-bold uppercase tracking-widest">
-                                        Chưa có nguyên liệu để kiểm kê
+                                        Không tìm thấy nguyên liệu
                                     </td>
                                 </tr>
-                            ) : auditRows.map((row) => (
+                            ) : displayAuditRows.map((row) => (
                                 <tr key={row.id_nguyen_lieu} className="hover:bg-gray-50/80 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-800">{row.ingredient?.ten_nguyen_lieu}</td>
                                     <td className="px-6 py-4 text-center">
@@ -266,7 +325,7 @@ export default function StockAuditPage() {
                 <div className="flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50">
                     <button
                         type="submit"
-                        disabled={isSubmitting || isLoading || auditRows.length === 0}
+                        disabled={isSubmitting || isLoading || ingredients.length === 0}
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#d9a01e] to-[#f8b500] text-white text-xs font-black uppercase tracking-widest shadow-md hover:shadow-[#d9a01e]/30 disabled:opacity-60 transition-all"
                     >
                         {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -418,10 +477,10 @@ export default function StockAuditPage() {
                                                         <td className="px-4 py-4 text-center font-bold text-gray-400">{idx + 1}</td>
                                                         <td className="px-4 py-4 font-black uppercase tracking-tight">{ct.NguyenLieu?.ten_nguyen_lieu}</td>
                                                         <td className="px-4 py-4 text-center font-bold text-gray-500">{ct.NguyenLieu?.don_vi_tinh || '-'}</td>
-                                                        <td className="px-4 py-4 text-right font-bold">{ct.luong_ban_ly_thuyet}</td>
-                                                        <td className="px-4 py-4 text-right font-bold text-blue-600">{ct.luong_du_thuc_te}</td>
+                                                        <td className="px-4 py-4 text-right font-bold">{Number(ct.luong_ban_ly_thuyet)}</td>
+                                                        <td className="px-4 py-4 text-right font-bold text-blue-600">{Number(ct.luong_du_thuc_te)}</td>
                                                         <td className={`px-4 py-4 text-right font-black ${Number(ct.luong_hao_hut) === 0 ? 'text-gray-400' : Number(ct.luong_hao_hut) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                                            {ct.luong_hao_hut}
+                                                            {Number(ct.luong_hao_hut)}
                                                         </td>
                                                         <td className="px-4 py-4 text-right font-black text-gray-900">{formatMoney(ct.gia_tri_hao_hut)}</td>
                                                     </tr>

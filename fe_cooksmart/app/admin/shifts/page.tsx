@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     ClipboardList, AlertTriangle, TrendingUp, Banknote, CreditCard, FileText,
-    ShieldCheck, Loader2, Eye, Calendar, Clock, CheckCircle,
+    ShieldCheck, Loader2, Eye, Calendar, Clock, CheckCircle, X, Search, RefreshCw,
 } from 'lucide-react';
 import { adminKetCaService } from '@/services/adminKetCa.service';
 import { KetCa, BaoCaoChiTietCa, DashboardSummary } from '@/types/ketCa';
@@ -15,6 +15,8 @@ import {
     AdminTableCard,
     AdminModal,
 } from '@/components/admin/ui';
+import { useShiftManagement } from '@/hooks/admin/shift/useShiftManagement';
+import { useShiftReport } from '@/hooks/admin/shift/useShiftReport';
 
 const fVND = (n: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n ?? 0);
@@ -66,31 +68,7 @@ function BaoCaoModal({
     onSuccess: () => void;
     showToast: (msg: string, type?: 'success' | 'error') => void;
 }) {
-    const [report, setReport] = useState<BaoCaoChiTietCa | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [ghiChu, setGhiChu] = useState(ca.ghi_chu_kiem_duyet ?? '');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        adminKetCaService.getBaoCaoChiTiet(ca.id)
-            .then(res => setReport(res.data))
-            .catch(() => showToast('Không thể tải báo cáo ca', 'error'))
-            .finally(() => setIsLoading(false));
-    }, [ca.id, showToast]);
-
-    const handleKiemDuyet = async () => {
-        try {
-            setIsSubmitting(true);
-            await adminKetCaService.kiemDuyetCa(ca.id, ghiChu);
-            showToast('Kiểm duyệt ca thành công!', 'success');
-            onSuccess();
-            onClose();
-        } catch {
-            showToast('Kiểm duyệt thất bại', 'error');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+    const { report, isLoading, ghiChu, setGhiChu, isSubmitting, handleKiemDuyet } = useShiftReport(ca, onSuccess, onClose, showToast);
 
     const tk = report?.thong_ke_tai_chinh;
 
@@ -202,63 +180,12 @@ const LIMIT = 10;
 
 export default function AdminShiftsPage() {
     const { showToast, toastNode } = useAdminToast();
-
-    const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const [isLoadingSummary, setIsLoadingSummary] = useState(true);
-    const [shifts, setShifts] = useState<KetCa[]>([]);
-    const [total, setTotal] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const [search, setSearch] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
-    const [tuNgay, setTuNgay] = useState('');
-    const [denNgay, setDenNgay] = useState('');
-    const [page, setPage] = useState(1);
-    const [selectedCa, setSelectedCa] = useState<KetCa | null>(null);
-
-    const fetchSummary = useCallback(async () => {
-        setIsLoadingSummary(true);
-        try {
-            const res = await adminKetCaService.getDashboardSummary({
-                tuNgay: tuNgay || undefined,
-                denNgay: denNgay || undefined,
-            });
-            setSummary(res.data);
-        } finally {
-            setIsLoadingSummary(false);
-        }
-    }, [tuNgay, denNgay]);
-
-    const fetchShifts = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const res = await adminKetCaService.getLichSuCa({
-                status: filterStatus === 'all' ? undefined : filterStatus,
-                tuNgay: tuNgay || undefined,
-                denNgay: denNgay || undefined,
-                limit: LIMIT,
-                offset: (page - 1) * LIMIT,
-            });
-            setShifts(res.data);
-            setTotal(res.total);
-        } catch {
-            showToast('Không thể tải danh sách ca', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [filterStatus, tuNgay, denNgay, page, showToast]);
-
-    useEffect(() => { fetchSummary(); }, [fetchSummary]);
-    useEffect(() => { setPage(1); }, [filterStatus, tuNgay, denNgay]);
-    useEffect(() => { fetchShifts(); }, [fetchShifts]);
-
-    const handleRefresh = () => { fetchSummary(); fetchShifts(); };
-
-    const filtered = search.trim()
-        ? shifts.filter(s => s.NguoiDung?.ho_ten?.toLowerCase().includes(search.toLowerCase()))
-        : shifts;
-
-    const totalPages = Math.ceil(total / LIMIT);
+    const {
+        summary, isLoadingSummary, total, isLoading,
+        search, setSearch, filterStatus, setFilterStatus, tuNgay, setTuNgay, denNgay, setDenNgay,
+        page, setPage, selectedCa, setSelectedCa, LIMIT, totalPages, filtered, handleRefresh,
+        fetchSummary, fetchShifts
+    } = useShiftManagement(showToast);
 
     const statItems = [
         { label: 'Tổng số ca', value: summary?.tong_so_ca ?? 0, color: 'text-gray-800', bg: 'bg-white', border: 'border-gray-100' },
@@ -281,11 +208,6 @@ export default function AdminShiftsPage() {
                 icon={<ClipboardList size={22} className="text-white" />}
                 title="Quản Lý Ca Làm Việc"
                 subtitle={`${total} ca · ${summary?.so_ca_chua_kiem_duyet ?? 0} chờ kiểm duyệt`}
-                searchValue={search}
-                onSearchChange={setSearch}
-                searchPlaceholder="Tìm theo tên nhân viên..."
-                onRefresh={handleRefresh}
-                isLoading={isLoading || isLoadingSummary}
             />
 
             {isLoadingSummary ? (
@@ -298,19 +220,71 @@ export default function AdminShiftsPage() {
                 <AdminStatCards items={statItems} cols={4} />
             )}
 
-            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
-                <AdminFilterTabs tabs={filterTabs} active={filterStatus} onChange={setFilterStatus as any} />
-                
-                {/* Date range filter */}
-                <div className="flex items-center gap-1">
-                    <div className="relative">
-                        <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        <input type="date" value={tuNgay} onChange={e => setTuNgay(e.target.value)}
-                            className="pl-7 pr-2 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-[#d9a01e]/50 transition-all shadow-sm" />
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Trạng thái:</label>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as any)}
+                            className="w-full sm:w-36 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            {filterTabs.map(tab => (
+                                <option key={tab.value} value={tab.value}>{tab.label}</option>
+                            ))}
+                        </select>
                     </div>
-                    <span className="text-gray-300 font-black">→</span>
-                    <input type="date" value={denNgay} onChange={e => setDenNgay(e.target.value)}
-                        className="px-2 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-[#d9a01e]/50 transition-all shadow-sm" />
+
+                    {/* Date range filter */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Ngày:</label>
+                        <div className="flex items-center gap-1">
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={tuNgay} onChange={e => setTuNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                            <span className="text-gray-300 font-black">→</span>
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={denNgay} onChange={e => setDenNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-52">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm theo tên nhân viên..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={handleRefresh}
+                        title="Làm mới"
+                        className="p-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all shrink-0"
+                    >
+                        <RefreshCw size={15} className={isLoading || isLoadingSummary ? 'animate-spin' : ''} />
+                    </button>
+                    {(search || filterStatus !== 'all' || tuNgay || denNgay) && (
+                        <button
+                            onClick={() => { setSearch(''); setFilterStatus('all'); setTuNgay(''); setDenNgay(''); }}
+                            className="p-2 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
                 </div>
             </div>
 

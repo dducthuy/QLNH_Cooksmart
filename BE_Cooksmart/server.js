@@ -29,7 +29,7 @@ app.set("onlineUsers", onlineUsers);
 io.on("connection", (socket) => {
     console.log("⚡ Client kết nối:", socket.id);
 
-    
+
     socket.on("dang_nhap", (userId) => {
         if (!userId) return;
         socket.userId = userId;
@@ -39,7 +39,7 @@ io.on("connection", (socket) => {
         }
         onlineUsers.get(userId).add(socket.id);
 
-        
+
         io.emit("user_online", { userId });
         console.log(`🟢 User ${userId} online (${onlineUsers.get(userId).size} kết nối)`);
     });
@@ -63,6 +63,11 @@ io.on("connection", (socket) => {
     socket.on("bao_het_mon", (data) => {
         console.log("❗ Hết món:", data.ten_mon);
         io.emit("het_hang_thong_bao", data);
+    });
+
+    socket.on("xoa_thong_bao", (data) => {
+        console.log("🔕 Xóa thông báo:", data.id);
+        io.emit("da_xoa_thong_bao", data);
     });
 
     socket.on("cap_nhat_menu", () => {
@@ -95,7 +100,8 @@ server.listen(PORT, () => {
 
 
 db.sequelize
-    .sync() 
+    .sync()
+    //.sync({ alter: true })
     .then(() => {
         console.log("✅ Đồng bộ Database hoàn tất – tất cả 13 bảng sẵn sàng!");
     })

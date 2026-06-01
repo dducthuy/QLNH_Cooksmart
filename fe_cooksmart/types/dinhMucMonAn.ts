@@ -6,6 +6,7 @@ export interface DinhMucMonAn {
   id_mon_an?: string;
   id_nguyen_lieu?: string;
   luong_tieu_hao: number;
+  don_vi_tinh?: string;
   MonAn?: Pick<MonAn, "id" | "ten_mon"> | null;
   NguyenLieu?: Pick<NguyenLieu, "id" | "ten_nguyen_lieu" | "don_vi_tinh"> | null;
 }
@@ -14,10 +15,12 @@ export interface TaoDinhMucBody {
   id_mon_an: string;
   id_nguyen_lieu: string;
   luong_tieu_hao: number;
+  don_vi_tinh?: string;
 }
 
 export interface CapNhatDinhMucBody {
   luong_tieu_hao: number;
+  don_vi_tinh?: string;
 }
 
 export interface LayTatCaDinhMucResponse {

@@ -30,6 +30,7 @@ export interface NhapKhoItem {
 
 export interface NhapKhoBody {
     items: NhapKhoItem[];
+    ghi_chu?: string;
 }
 
 export interface KiemKeItem {
@@ -49,6 +50,7 @@ export interface XuatKhoItem {
 
 export interface XuatKhoBody {
     items: XuatKhoItem[];
+    ghi_chu?: string;
 }
 
 export const khoService = {

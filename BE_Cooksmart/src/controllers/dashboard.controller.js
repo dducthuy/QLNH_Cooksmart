@@ -1,4 +1,5 @@
-const { HoaDon, BanAn, MonAn, ChiTietHoaDon } = require("../models/index");
+const { HoaDon, BanAn, MonAn, ChiTietHoaDon, DanhMuc, NguyenLieu, DinhMucMonAn } = require("../models/index");
+const { convertUnit } = require("../utils/unitConverter");
 const { Op } = require("sequelize");
 const sequelize = require("../models/index").sequelize;
 
@@ -112,21 +113,110 @@ exports.getDashboardTongQuan = async (req, res, next) => {
         });
 
         const topMonBanChay = chiTiets.map(ct => ({
-            name: ct['MonAn.ten_mon'] || 'Món không rõ',
+            name: ct['MonAn.ten_mon'] || 'Combo/Khác',
             sold: Number(ct.total_sold)
         }));
+
+        const nguyenLieuSapHetData = await NguyenLieu.findAll({
+            where: { 
+                loai_quan_ly: 'TU_DONG',
+                so_luong_ton: { [Op.lt]: 10 } // Tạm thời cảnh báo nếu tồn kho < 10
+            },
+            order: [['so_luong_ton', 'ASC']],
+            limit: 5,
+            attributes: ['id', 'ten_nguyen_lieu', 'so_luong_ton', 'don_vi_tinh']
+        });
+
+        const doanhThuDanhMucData = await ChiTietHoaDon.findAll({
+            include: [
+                {
+                    model: HoaDon,
+                    attributes: [],
+                    where: {
+                        trang_thai_hd: 'DaThanhToan',
+                        thoi_gian_tao: timeFilter
+                    }
+                },
+                {
+                    model: MonAn,
+                    attributes: [],
+                    include: [{
+                        model: DanhMuc,
+                        attributes: ['ten_danh_muc']
+                    }]
+                }
+            ],
+            attributes: [
+                [sequelize.col('MonAn.DanhMuc.ten_danh_muc'), 'name'],
+                [sequelize.fn('SUM', sequelize.literal('`ChiTietHoaDon`.`so_luong` * `MonAn`.`gia_tien`')), 'value']
+            ],
+            group: ['MonAn.id_danh_muc', 'MonAn.DanhMuc.id', 'MonAn.DanhMuc.ten_danh_muc'],
+            raw: true
+        });
+
+        const doanhThuTheoDanhMuc = doanhThuDanhMucData.map(d => ({
+            name: d.name || 'Combo/Khác',
+            value: Number(d.value)
+        })).filter(d => d.value > 0);
+
+        const tatCaChiTiet = await ChiTietHoaDon.findAll({
+            include: [
+                {
+                    model: HoaDon,
+                    attributes: [],
+                    where: {
+                        trang_thai_hd: 'DaThanhToan',
+                        thoi_gian_tao: timeFilter
+                    }
+                }
+            ],
+            attributes: [
+                'id_mon_an',
+                [sequelize.fn('SUM', sequelize.col('ChiTietHoaDon.so_luong')), 'total_sold']
+            ],
+            group: ['id_mon_an'],
+            raw: true
+        });
+
+        let tongTienCost = 0;
+        for (const ct of tatCaChiTiet) {
+            if (!ct.id_mon_an) continue;
+            
+            const dinhMucs = await DinhMucMonAn.findAll({
+                where: { id_mon_an: ct.id_mon_an },
+                include: [{ model: NguyenLieu, attributes: ['gia_von_binh_quan', 'gia_nhap_gan_nhat', 'don_vi_tinh'] }]
+            });
+
+            let costMonAn = 0;
+            dinhMucs.forEach(dm => {
+                const nl = dm.NguyenLieu;
+                if (nl) {
+                    const donGia = Number(nl.gia_von_binh_quan) > 0 ? Number(nl.gia_von_binh_quan) : Number(nl.gia_nhap_gan_nhat || 0);
+                    const luongXuatKho = convertUnit(dm.luong_tieu_hao, dm.don_vi_tinh, nl.don_vi_tinh);
+                    costMonAn += luongXuatKho * donGia;
+                }
+            });
+
+            tongTienCost += costMonAn * Number(ct.total_sold);
+        }
+
+        const tienLoi = doanhThuThuan - tongTienCost;
 
         res.status(200).json({
             status: "success",
             data: {
                 thongKeNhanh: {
                     doanhThuThuan,
+                    tongTienCost,
+                    tienLoi,
                     soDonHang,
                     tyLeLapDayBan,
                     monDungBan
                 },
                 doanhThuTheoGio,
-                topMonBanChay
+                topMonBanChay,
+                nguyenLieuSapHet: nguyenLieuSapHetData,
+                doanhThuTheoDanhMuc
             }
         });
 

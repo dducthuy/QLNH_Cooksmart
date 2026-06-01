@@ -14,9 +14,10 @@ import {
     Copy,
     Edit2,
     Trash2,
-    Loader2
+    Loader2,
+    Search,
+    RefreshCw
 } from 'lucide-react';
-import { banAnService } from '@/services/banAn.service';
 import { BanAn, TrangThaiBan } from '@/types/banAn';
 import {
     useAdminToast,
@@ -27,6 +28,8 @@ import {
     AdminModal,
 } from '@/components/admin/ui';
 import DynamicForm, { FormField } from '@/components/admin/form/DynamicForm';
+import { useTableManagement } from '@/hooks/admin/table/useTableManagement';
+import { useTableQR } from '@/hooks/admin/table/useTableQR';
 
 const STATUS_CONFIG: Record<TrangThaiBan, { label: string; color: string; bg: string; dot: string; icon: React.ReactNode }> = {
     Trong: {
@@ -59,31 +62,7 @@ const TRANG_THAI_OPTIONS = [
 ];
 
 function QRModal({ ban, onClose }: { ban: BanAn; onClose: () => void }) {
-    const [qrData, setQrData] = useState<{ qr_code: string; order_url: string } | null>(null);
-    const [isLoadingQR, setIsLoadingQR] = useState(true);
-    const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        banAnService.getQRCode(ban.id)
-            .then(data => setQrData(data))
-            .catch(() => setQrData(null))
-            .finally(() => setIsLoadingQR(false));
-    }, [ban.id]);
-
-    const handleDownload = () => {
-        if (!qrData) return;
-        const link = document.createElement('a');
-        link.href = qrData.qr_code;
-        link.download = `QR_Ban_${ban.so_ban.replace(/\s/g, '_')}.png`;
-        link.click();
-    };
-
-    const handleCopyLink = async () => {
-        if (!qrData) return;
-        await navigator.clipboard.writeText(qrData.order_url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+    const { qrData, isLoadingQR, copied, handleDownload, handleCopyLink } = useTableQR(ban);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -197,91 +176,14 @@ function TableCard({
 }
 
 export default function TableManagementPage() {
-    const [tables, setTables] = useState<BanAn[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState<TrangThaiBan | 'all'>('all');
-
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingTable, setEditingTable] = useState<BanAn | null>(null);
-    const [deletingTable, setDeletingTable] = useState<BanAn | null>(null);
-    const [qrTable, setQrTable] = useState<BanAn | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
     const { showToast, toastNode } = useAdminToast();
-
-    const fetchTables = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const data = await banAnService.getAll();
-            setTables(data);
-        } catch {
-            showToast('Không thể tải danh sách bàn!', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showToast]);
-
-    useEffect(() => { fetchTables(); }, [fetchTables]);
-
-    const handleAdd = () => { setEditingTable(null); setIsFormOpen(true); };
-    const handleEdit = (ban: BanAn) => { setEditingTable(ban); setIsFormOpen(true); };
-    const handleDeleteClick = (ban: BanAn) => setDeletingTable(ban);
-    const handleShowQR = (ban: BanAn) => setQrTable(ban);
-
-    const handleFormSubmit = async (data: any) => {
-        try {
-            setIsSubmitting(true);
-            const payload = {
-                so_ban: data.so_ban.trim(),
-                vi_tri: data.vi_tri?.trim() || null,
-                ma_qr_code: data.ma_qr_code?.trim() || null,
-                trang_thai_ban: data.trang_thai_ban,
-            };
-            if (editingTable) {
-                await banAnService.update(editingTable.id, payload);
-                showToast(`Đã cập nhật Bàn ${data.so_ban} thành công!`);
-            } else {
-                await banAnService.create(payload);
-                showToast(`Đã thêm Bàn ${data.so_ban} thành công!`);
-            }
-            setIsFormOpen(false);
-            fetchTables();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Lưu thất bại!', 'error');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!deletingTable) return;
-        try {
-            setIsDeleting(true);
-            await banAnService.delete(deletingTable.id);
-            showToast(`Đã xóa Bàn ${deletingTable.so_ban} thành công!`);
-            setDeletingTable(null);
-            fetchTables();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Xóa thất bại!', 'error');
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const filtered = tables.filter((t) => {
-        const matchSearch = t.so_ban.toLowerCase().includes(searchTerm.toLowerCase()) || (t.vi_tri ?? '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchStatus = filterStatus === 'all' || t.trang_thai_ban === filterStatus;
-        return matchSearch && matchStatus;
-    });
-
-    const counts = {
-        total: tables.length,
-        trong: tables.filter((t) => t.trang_thai_ban === 'Trong').length,
-        dangPhucVu: tables.filter((t) => t.trang_thai_ban === 'DangPhucVu').length,
-        datTruoc: tables.filter((t) => t.trang_thai_ban === 'DatTruoc').length,
-    };
+    const {
+        isLoading, searchTerm, setSearchTerm, filterStatus, setFilterStatus,
+        isFormOpen, setIsFormOpen, editingTable, deletingTable, setDeletingTable,
+        qrTable, setQrTable, isSubmitting, isDeleting,
+        fetchTables, handleAdd, handleEdit, handleDeleteClick, handleShowQR,
+        handleFormSubmit, handleConfirmDelete, filtered, counts
+    } = useTableManagement(showToast);
 
     const statItems = [
         { label: 'Tổng bàn', value: counts.total, color: 'text-gray-800', bg: 'bg-white', border: 'border-gray-100' },
@@ -312,19 +214,61 @@ export default function TableManagementPage() {
                 icon={<LayoutGrid size={22} className="text-white" />}
                 title="Quản Lý Bàn Ăn"
                 subtitle={`Tổng cộng: ${counts.total} bàn`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm số bàn, vị trí..."
-                onRefresh={fetchTables}
-                isLoading={isLoading}
                 onAdd={handleAdd}
                 addLabel="Thêm Bàn"
             />
 
             <AdminStatCards items={statItems} cols={4} />
 
-            <div className="flex gap-2 flex-wrap">
-                <AdminFilterTabs tabs={filterTabs} active={filterStatus} onChange={setFilterStatus as any} />
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Trạng thái:</label>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as TrangThaiBan | 'all')}
+                            className="w-full sm:w-36 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            {filterTabs.map(tab => (
+                                <option key={tab.value} value={tab.value}>{tab.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm số bàn, vị trí..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={fetchTables}
+                        title="Làm mới"
+                        className="p-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all shrink-0"
+                    >
+                        <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                    {(searchTerm || filterStatus !== 'all') && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setFilterStatus('all'); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {isLoading ? (

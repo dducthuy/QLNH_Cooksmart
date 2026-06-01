@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layers, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Layers, Edit2, Trash2, Loader2, Search, RefreshCw, X } from 'lucide-react';
 import { loaiNguyenLieuService } from '@/services/loaiNguyenLieu.service';
 import { LoaiNguyenLieu } from '@/types/loaiNguyenLieu';
 import {
@@ -101,14 +101,38 @@ export default function LoaiNguyenLieuPage() {
                 icon={<Layers size={22} className="text-white" />}
                 title="Quản Lý Loại Nguyên Liệu"
                 subtitle={`${categories.length} danh mục`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm tên loại..."
-                onRefresh={fetchCategories}
-                isLoading={isLoading}
                 onAdd={() => { setSelected(null); setModal('add'); }}
                 addLabel="Thêm Loại Mới"
             />
+
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-end bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm tên loại..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <AdminTableCard icon={<Layers size={16} />} title="Danh Sách Loại Nguyên Liệu" count={filtered.length}>
                 <div className="overflow-x-auto">

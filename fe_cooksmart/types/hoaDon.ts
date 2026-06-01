@@ -1,8 +1,9 @@
 export type TrangThaiHoaDon = "ChoXuLy" | "DangPhucVu" | "DaThanhToan" | "DaHuy";
 
-export type PhuongThucThanhToan = "TienMat" | "ChuyenKhoan";
+export type PhuongThucThanhToan = "TienMat" | "ChuyenKhoan" | "ZaloPay";
 
-export type TrangThaiMon = "DangCho" | "DangNau" | "DaXong";
+export type TrangThaiMon = "DangCho" | "DangNau" | "DaXong" | "DaLayDi";
+
 
 export interface ChiTietHoaDon {
   id: string;
@@ -21,6 +22,7 @@ export interface HoaDon {
   id_ban: string | null;
   id_nhan_vien: string | null;
   tong_tien: number;
+  id_khuyen_mai?: string | null;
   giam_gia: number;
   phuong_thuc_tt: PhuongThucThanhToan;
   trang_thai_hd: TrangThaiHoaDon;
@@ -93,6 +95,7 @@ export interface LayChiTietHoaDonResponse {
 export interface CapNhatTrangThaiHoaDonBody {
   trang_thai_hd: TrangThaiHoaDon;
   phuong_thuc_tt?: PhuongThucThanhToan;
+  id_khuyen_mai?: string;
 }
 
 export interface CapNhatTrangThaiHoaDonResponse {

@@ -27,7 +27,7 @@ const ChiTietHoaDon = sequelize.define(
             defaultValue: 1,
         },
         trang_thai_mon: {
-            type: DataTypes.ENUM("DangCho", "DangNau", "DaXong"),
+            type: DataTypes.ENUM("DangCho", "DangNau", "DaXong", "DaLayDi"),
             defaultValue: "DangCho",
         },
     },

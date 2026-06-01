@@ -13,39 +13,29 @@ export interface TokenPayload {
     exp: number;
 }
 
-// ========================
-// LƯU / LẤY / XÓA TOKEN (cookie)
-// ========================
+
 export const getToken = (): string | null => {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp(`(?:^|; )${TOKEN_KEY}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : null;
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem(TOKEN_KEY);
 };
 
 export const setToken = (token: string): void => {
-    if (typeof document === 'undefined') return;
-    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${MAX_AGE}; SameSite=Strict`;
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(TOKEN_KEY, token);
 };
 
 export const removeToken = (): void => {
-    if (typeof document === 'undefined') return;
-    document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(TOKEN_KEY);
 };
 
-// ========================
-// GIẢI MÃ TOKEN
-// ========================
 
-/**
- * Giải mã JWT để lấy payload (id, vai_tro, iat, exp).
- * Chỉ DECODE, không VERIFY chữ ký — dùng để đọc thông tin trên UI.
- */
 export const decodeToken = (token: string): TokenPayload | null => {
     try {
         const base64Payload = token.split('.')[1];
         if (!base64Payload) return null;
 
-        // Chuyển từ base64 sang chuỗi byte
+
         const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
         const binaryString = atob(base64);
         const bytes = new Uint8Array(binaryString.length);
@@ -53,7 +43,7 @@ export const decodeToken = (token: string): TokenPayload | null => {
             bytes[i] = binaryString.charCodeAt(i);
         }
 
-        // Giải mã UTF-8 (Fix lỗi font tiếng Việt)
+
         const jsonPayload = new TextDecoder().decode(bytes);
 
         return JSON.parse(jsonPayload) as TokenPayload;
@@ -63,18 +53,14 @@ export const decodeToken = (token: string): TokenPayload | null => {
     }
 };
 
-/**
- * Lấy payload từ token đang lưu trong cookie.
- */
+
 export const getTokenPayload = (): TokenPayload | null => {
     const token = getToken();
     if (!token) return null;
     return decodeToken(token);
 };
 
-/**
- * Kiểm tra token đã hết hạn chưa.
- */
+
 export const isTokenExpired = (): boolean => {
     const payload = getTokenPayload();
     if (!payload) return true;

@@ -1,37 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     ShoppingCart, Plus, Minus, Trash2, CheckCircle,
     Loader2, UtensilsCrossed, Search, ChevronDown, ArrowLeft,
     QrCode, AlertTriangle, Send, X
 } from 'lucide-react';
-import { banAnService } from '@/services/banAn.service';
-import { hoaDonService } from '@/services/hoaDon.service';
-import { comboService } from '@/services/combo.service';
-import { dishService } from '@/services/dish.service';
-import { categoryService } from '@/services/category.service';
-import { BanAn } from '@/types/banAn';
-import { useSocket } from '@/context/SocketContext';
 import ComboDetailModal from '@/components/ui/ComboDetailModal';
-import { Combo } from '@/types/combo';
+import { useOrder, CartItem } from '@/hooks/order/useOrder';
 
 
-
-
-
-interface CartItem {
-    id: string; // Internal unique ID for cart
-    id_mon_an?: string;
-    id_combo?: string;
-    ten_mon: string;
-    gia_tien: number;
-    hinh_anh_mon: string | null;
-    so_luong: number;
-}
-
-// ─── Format VND ────────────────────────────────────────────────────────────
 const vnd = (n: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -143,141 +122,15 @@ function OrderPageContent() {
     const searchParams = useSearchParams();
     const tableId = searchParams.get('tableId');
 
-    const [tableInfo, setTableInfo] = useState<BanAn | null>(null);
-    const [monAnList, setMonAnList] = useState<any[]>([]);
-    const [comboList, setComboList] = useState<any[]>([]);
-    const [danhMucList, setDanhMucList] = useState<any[]>([]);
-    const [selectedDanhMuc, setSelectedDanhMuc] = useState<string>('all');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [cart, setCart] = useState<CartItem[]>([]);
-    const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [orderSuccess, setOrderSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [activeOrder, setActiveOrder] = useState<any>(null);
-    const [viewingCombo, setViewingCombo] = useState<Combo | null>(null);
-
-    const { socket } = useSocket();
-
-
-    const loadData = useCallback(async () => {
-        if (!tableId) { setIsLoading(false); return; }
-        try {
-            const [table, monAn, danhMuc, order, combos] = await Promise.all([
-                banAnService.getById(tableId),
-                dishService.getAll(),
-                categoryService.getAll(),
-                hoaDonService.getActiveByTable(tableId),
-                comboService.getPublic()
-            ]);
-            setTableInfo(table);
-            setMonAnList(monAn);
-            setDanhMucList(danhMuc);
-            setActiveOrder(order);
-            setComboList(combos);
-        } catch (err) {
-            console.error(err);
-            setError('Không thể tải dữ liệu. Vui lòng quét lại mã QR.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [tableId]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-
-    useEffect(() => {
-        if (!socket || !tableId) return;
-
-        const handleMenuUpdate = () => {
-            console.log("🔄 Menu updated from server...");
-            loadData(); // Re-fetch everything
-        };
-
-        const handleOrderUpdate = () => {
-            hoaDonService.getActiveByTable(tableId).then(setActiveOrder).catch(console.error);
-        };
-
-        socket.on('cap_nhat_menu', handleMenuUpdate);
-        socket.on('trang_thai_mon_da_doi', handleOrderUpdate);
-
-        return () => {
-            socket.off('cap_nhat_menu', handleMenuUpdate);
-            socket.off('trang_thai_mon_da_doi', handleOrderUpdate);
-        };
-    }, [socket, tableId]);
-
-
-    const getQty = (id: string) => cart.find(c => c.id === id)?.so_luong ?? 0;
-
-    const addToCart = (item: any, isCombo = false) => {
-        setCart(prev => {
-            const existing = prev.find(c => c.id === item.id);
-            if (existing) return prev.map(c => c.id === item.id ? { ...c, so_luong: c.so_luong + 1 } : c);
-
-            const cartItem: CartItem = {
-                id: item.id,
-                ten_mon: isCombo ? item.ten_combo : item.ten_mon,
-                gia_tien: item.gia_tien,
-                hinh_anh_mon: isCombo ? item.hinh_anh_combo : item.hinh_anh_mon,
-                so_luong: 1
-            };
-            if (isCombo) cartItem.id_combo = item.id;
-            else cartItem.id_mon_an = item.id;
-
-            return [...prev, cartItem];
-        });
-    };
-
-    const removeFromCart = (id: string) => {
-        setCart(prev => {
-            const existing = prev.find(c => c.id === id);
-            if (!existing) return prev;
-            if (existing.so_luong <= 1) return prev.filter(c => c.id !== id);
-            return prev.map(c => c.id === id ? { ...c, so_luong: c.so_luong - 1 } : c);
-        });
-    };
-
-    const deleteFromCart = (id: string) => setCart(prev => prev.filter(c => c.id !== id));
-
-    const totalItems = cart.reduce((s, i) => s + i.so_luong, 0);
-    const totalPrice = cart.reduce((s, i) => s + i.gia_tien * i.so_luong, 0);
-
-    const handleDatMon = async () => {
-        if (!tableId || cart.length === 0) return;
-        try {
-            setIsSubmitting(true);
-            await hoaDonService.createKhachHang({
-                id_ban: tableId,
-                chi_tiet_hoa_don: cart.map(i => ({
-                    id_mon_an: i.id_mon_an,
-                    id_combo: i.id_combo,
-                    so_luong: i.so_luong
-                }))
-            });
-            setOrderSuccess(true);
-            setCart([]);
-            setIsCartOpen(false);
-        } catch (err: any) {
-            setError(err?.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại!');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // ── Filter ──
-    const filteredDishes = monAnList.filter(m => {
-        const matchCat = selectedDanhMuc === 'all' || m.id_danh_muc === selectedDanhMuc;
-        const matchSearch = m.ten_mon.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchCat && matchSearch && selectedDanhMuc !== 'combo' && m.con_hang;
-    });
-
-    const filteredCombos = comboList.filter(c => {
-        const matchSearch = c.ten_combo.toLowerCase().includes(searchTerm.toLowerCase());
-        return (selectedDanhMuc === 'all' || selectedDanhMuc === 'combo') && matchSearch && c.trang_thai;
-    });
+    const {
+        tableInfo, danhMucList, selectedDanhMuc, setSelectedDanhMuc,
+        searchTerm, setSearchTerm, cart, isCartOpen, setIsCartOpen,
+        isLoading, isSubmitting, orderSuccess, setOrderSuccess,
+        error, setError, activeOrder, viewingCombo, setViewingCombo,
+        isPaying, getQty, addToCart, removeFromCart, deleteFromCart,
+        totalItems, totalPrice, handleDatMon, handleThanhToanZaloPay,
+        filteredDishes, filteredCombos
+    } = useOrder(tableId);
 
     // ─── States ──────────────────────────────────────────────────────────────
     if (!tableId) return (
@@ -474,7 +327,19 @@ function OrderPageContent() {
                                         Món đã gọi ({activeOrder.ChiTietHoaDons.length})
                                     </h3>
                                     <div className="space-y-0">
-                                        {activeOrder.ChiTietHoaDons.map((item: any, index: number) => (
+                                        {(() => {
+                                            const displayMap = new Map<string, any>();
+                                            activeOrder.ChiTietHoaDons.forEach((item: any) => {
+                                                const key = `${item.id_mon_an || item.id_combo}-${item.trang_thai_mon}-${item.ghi_chu || ""}`;
+                                                if (displayMap.has(key)) {
+                                                    displayMap.get(key).so_luong += item.so_luong;
+                                                } else {
+                                                    displayMap.set(key, { ...item });
+                                                }
+                                            });
+                                            const displayItems = Array.from(displayMap.values());
+
+                                            return displayItems.map((item: any, index: number) => (
                                             <div key={`active-${item.id}-${index}`} className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 opacity-80">
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-gray-800 text-sm truncate">{item.MonAn?.ten_mon || item.Combo?.ten_combo}</p>
@@ -487,7 +352,8 @@ function OrderPageContent() {
                                                     {item.trang_thai_mon === 'DaXong' && <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-black uppercase tracking-tight">Đã xong</span>}
                                                 </div>
                                             </div>
-                                        ))}
+                                        ));
+                                        })()}
                                     </div>
                                 </div>
                             )}
@@ -534,6 +400,27 @@ function OrderPageContent() {
                                 </button>
                                 <p className="text-center text-[11px] text-gray-400 mt-3">
                                     📋 Đơn hàng sẽ được nhân viên xác nhận trước khi bếp chế biến
+                                </p>
+                            </div>
+                        )}
+
+                        {/* ZaloPay Payment for Active Order */}
+                        {cart.length === 0 && activeOrder && activeOrder.ChiTietHoaDons?.length > 0 && (
+                            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50 shrink-0">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Tổng thanh toán</span>
+                                    <span className="text-2xl font-black text-[#d9a01e]">{vnd(Number(activeOrder.tong_tien) - (activeOrder.giam_gia || 0))}</span>
+                                </div>
+                                <button
+                                    onClick={handleThanhToanZaloPay}
+                                    disabled={isPaying}
+                                    className="w-full py-4 bg-[#0068ff] hover:bg-blue-600 disabled:opacity-60 active:scale-[0.98] transition-all text-white font-black rounded-2xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 uppercase tracking-widest text-sm"
+                                >
+                                    {isPaying ? <Loader2 size={20} className="animate-spin" /> : <img src="https://zalopay.vn/images/logo/ZaloPay-logo-bg.svg" alt="ZaloPay" className="w-5 h-5 object-contain invert brightness-0" />}
+                                    {isPaying ? 'Đang tạo...' : 'Thanh toán ZaloPay'}
+                                </button>
+                                <p className="text-center text-[11px] text-gray-400 mt-3">
+                                    💳 Bạn sẽ được chuyển hướng tới cổng thanh toán ZaloPay
                                 </p>
                             </div>
                         )}

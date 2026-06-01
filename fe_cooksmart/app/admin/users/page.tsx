@@ -14,7 +14,10 @@ import {
     Edit2,
     KeyRound,
     Trash2,
-    Loader2
+    Loader2,
+    Search,
+    RefreshCw,
+    X
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { nguoiDungService } from '@/services/nguoiDung.service';
@@ -230,30 +233,73 @@ export default function UserManagementPage() {
                 icon={<Users size={22} className="text-white" />}
                 title="Quản Lý Người Dùng"
                 subtitle={`${users.length} tài khoản • ${activeCount} hoạt động • ${onlineCount} online`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm tên đăng nhập, họ tên..."
-                onRefresh={fetchUsers}
-                isLoading={isLoading}
                 onAdd={() => { setSelected(null); setModal('add'); }}
                 addLabel="Thêm Mới"
             />
 
             <AdminStatCards items={statItems} cols={5} />
 
-            <div className="flex items-center justify-between flex-wrap gap-2">
-                <AdminFilterTabs tabs={filterTabs} active={filterRole} onChange={setFilterRole as any} />
-                <div className="flex gap-2">
-                    {([
-                        { v: 'all', l: 'Mọi trạng thái' },
-                        { v: 'active', l: 'Hoạt động' },
-                        { v: 'inactive', l: 'Đã khóa' },
-                    ] as const).map((s) => (
-                        <button key={s.v} onClick={() => setFilterStatus(s.v)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${filterStatus === s.v ? 'bg-gray-700 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-400'}`}>
-                            {s.l}
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Vai trò:</label>
+                        <select
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value as any)}
+                            className="w-full sm:w-36 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            {filterTabs.map(tab => (
+                                <option key={tab.value} value={tab.value}>{tab.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap hidden sm:block">Trạng thái:</label>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as any)}
+                            className="w-full sm:w-36 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            <option value="all">Mọi trạng thái</option>
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Đã khóa</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm tên đăng nhập, họ tên..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={fetchUsers}
+                        title="Làm mới"
+                        className="p-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all shrink-0"
+                    >
+                        <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                    {(searchTerm || filterRole !== 'all' || filterStatus !== 'all') && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setFilterRole('all'); setFilterStatus('all'); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
                         </button>
-                    ))}
+                    )}
                 </div>
             </div>
 

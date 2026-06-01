@@ -21,6 +21,11 @@ const DinhMucMonAn = sequelize.define(
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
         },
+        don_vi_tinh: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            comment: "Đơn vị tính: kg, g, ml, l, cái...",
+        },
     },
     {
         tableName: "DinhMucMonAn",

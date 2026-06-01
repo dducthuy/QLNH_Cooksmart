@@ -6,7 +6,7 @@ const { Op } = require("sequelize");
 exports.layLichSuCa = async (req, res, next) => {
     try {
         const {
-            status,      
+            status,
             userId,
             tuNgay,
             denNgay,
@@ -16,7 +16,7 @@ exports.layLichSuCa = async (req, res, next) => {
 
         const whereClause = {};
 
-        
+
         if (status === "open") {
             whereClause.trang_thai_ca = "DangChay";
         } else if (status === "closed") {
@@ -103,7 +103,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                 trang_thai_hd: "DaThanhToan",
             },
             attributes: [
-                
+
                 [
                     sequelize.fn(
                         "SUM",
@@ -113,7 +113,7 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     ),
                     "tong_tien_mat",
                 ],
-                
+
                 [
                     sequelize.fn(
                         "SUM",
@@ -123,9 +123,9 @@ exports.layBaoCaoChiTietCa = async (req, res, next) => {
                     ),
                     "tong_chuyen_khoan",
                 ],
-                
+
                 [sequelize.fn("COUNT", sequelize.col("id")), "tong_so_don"],
-                
+
                 [
                     sequelize.fn(
                         "SUM",
@@ -231,28 +231,28 @@ exports.layTongQuanDashboard = async (req, res, next) => {
             }
         }
 
-        
+
         const tongQuan = await KetCa.findAll({
             where: whereClause,
             attributes: [
-                
+
                 [sequelize.fn("COUNT", sequelize.col("KetCa.id")), "tong_so_ca"],
-                
+
                 [
                     sequelize.fn("SUM", sequelize.col("tong_tien_mat_he_thong")),
                     "tong_doanh_thu_tien_mat",
                 ],
-                
+
                 [
                     sequelize.fn("SUM", sequelize.col("tong_chuyen_khoan_he_thong")),
                     "tong_doanh_thu_chuyen_khoan",
                 ],
-                
+
                 [
                     sequelize.fn("SUM", sequelize.col("tien_chenh_lech")),
                     "tong_chenh_lech",
                 ],
-                
+
                 [
                     sequelize.fn("SUM", sequelize.col("tien_dau_ca")),
                     "tong_tien_dau_ca",
@@ -261,7 +261,7 @@ exports.layTongQuanDashboard = async (req, res, next) => {
             raw: true,
         });
 
-        
+
         const soCaChuaKiemDuyet = await KetCa.count({
             where: {
                 ...whereClause,

@@ -19,6 +19,8 @@ const ketCaRoutes      = require("./routes/ketCa.route");
 const adminKetCaRoutes = require("./routes/adminKetCa.route");
 const dashboardRoutes  = require("./routes/dashboard.routes");
 const comboRoutes      = require("./routes/combo.route");
+const zalopayRoutes    = require("./routes/zalopay.route");
+const khuyenMaiRoutes  = require("./routes/khuyenMai.route");
 
 const app = express();
 
@@ -49,6 +51,8 @@ app.use("/api/shifts",           ketCaRoutes);
 app.use("/api/admin/shifts",     adminKetCaRoutes);
 app.use("/api/dashboard",        dashboardRoutes);
 app.use("/api/combo",            comboRoutes);
+app.use("/api/zalopay",          zalopayRoutes);
+app.use("/api/khuyen-mai",       khuyenMaiRoutes);
 
 app.use((req, res, next) => {
     next(new AppError(`Không tìm thấy đường dẫn: ${req.originalUrl}`, 404));

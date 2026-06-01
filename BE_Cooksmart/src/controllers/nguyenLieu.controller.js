@@ -65,6 +65,9 @@ exports.taoNguyenLieu = async (req, res, next) => {
             gia_von_binh_quan: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat) : 0,
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
+
         res.status(201).json({
             status: "success",
             message: `Đã thêm nguyên liệu "${nguyenLieuMoi.ten_nguyen_lieu}" thành công!`,
@@ -105,6 +108,9 @@ exports.capNhatNguyenLieu = async (req, res, next) => {
             gia_nhap_gan_nhat: gia_nhap_gan_nhat !== undefined ? Number(gia_nhap_gan_nhat) : nguyenLieu.gia_nhap_gan_nhat,
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
+
         res.status(200).json({
             status: "success",
             message: "Cập nhật nguyên liệu thành công!",
@@ -140,6 +146,9 @@ exports.xoaNguyenLieu = async (req, res, next) => {
 
         const ten = nguyenLieu.ten_nguyen_lieu;
         await nguyenLieu.destroy();
+
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
 
         res.status(200).json({
             status: "success",

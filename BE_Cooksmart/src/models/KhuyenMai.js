@@ -9,6 +9,11 @@ const KhuyenMai = sequelize.define(
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
+        ma_km: {
+            type: DataTypes.STRING(50),
+            unique: true,
+            allowNull: true,
+        },
         ten_km: {
             type: DataTypes.STRING(255),
             allowNull: false,
@@ -36,6 +41,16 @@ const KhuyenMai = sequelize.define(
         trang_thai: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,
+        },
+        so_luong: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0, 
+        },
+        da_dung: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
         },
     },
     {

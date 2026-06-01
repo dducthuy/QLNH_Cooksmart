@@ -26,7 +26,7 @@ const HoaDon = sequelize.define(
             defaultValue: 0,
         },
         phuong_thuc_tt: {
-            type: DataTypes.ENUM("TienMat", "ChuyenKhoan"),
+            type: DataTypes.ENUM("TienMat", "ChuyenKhoan", "ZaloPay"),
             defaultValue: "TienMat",
         },
         trang_thai_hd: {

@@ -16,6 +16,7 @@ import {
     ClipboardList,
     Layers,
     Package,
+    List,
 } from 'lucide-react';
 import { useState } from 'react';
 import { removeToken } from '@/lib/token';
@@ -28,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const navItems = [
         { name: 'Tổng Quan', path: '/admin', icon: <LayoutDashboard size={20} /> },
         { name: 'Người Dùng', path: '/admin/users', icon: <Users size={20} /> },
+        { name: 'Danh Mục', path: '/admin/categories', icon: <List size={20} /> },
         { name: 'Thực Đơn', path: '/admin/menu', icon: <ChefHat size={20} /> },
         { name: 'Combo', path: '/admin/combos', icon: <Layers size={20} /> },
         { name: 'Bàn Ăn', path: '/admin/tables', icon: <LayoutGrid size={20} /> },

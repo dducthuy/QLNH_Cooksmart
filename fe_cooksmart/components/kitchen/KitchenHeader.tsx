@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChefHat, ArrowLeft, LogOut } from 'lucide-react';
 import { removeToken } from '@/lib/token';
 import Link from 'next/link';
@@ -8,7 +8,16 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function KitchenHeader() {
     const { displayName, vaiTro } = useAuth();
-    const timeString = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const [timeString, setTimeString] = useState<string>('');
+
+    useEffect(() => {
+        const updateTime = () => {
+            setTimeString(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleLogout = () => {
         if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {

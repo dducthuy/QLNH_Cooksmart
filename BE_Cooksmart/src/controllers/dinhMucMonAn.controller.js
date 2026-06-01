@@ -1,5 +1,6 @@
 const { DinhMucMonAn, MonAn, NguyenLieu } = require("../models/index");
 const AppError = require("../utils/AppError");
+const { convertUnit } = require("../utils/unitConverter");
 
 exports.layDinhMucTheoMonAn = async (req, res, next) => {
     try {
@@ -12,7 +13,7 @@ exports.layDinhMucTheoMonAn = async (req, res, next) => {
 
         const danhSach = await DinhMucMonAn.findAll({
             where: { id_mon_an },
-            attributes: ["id", "luong_tieu_hao"],
+            attributes: ["id", "luong_tieu_hao", "don_vi_tinh"],
             include: [
                 {
                     model: NguyenLieu,
@@ -32,10 +33,73 @@ exports.layDinhMucTheoMonAn = async (req, res, next) => {
     }
 };
 
+exports.layDinhMucTheoMonAnVoiChiPhi = async (req, res, next) => {
+    try {
+        const { id_mon_an } = req.params;
+
+        const monAn = await MonAn.findByPk(id_mon_an, {
+            attributes: ["id", "ten_mon", "gia_tien"],
+        });
+        if (!monAn) {
+            return next(new AppError(`Không tìm thấy món ăn với ID: ${id_mon_an}`, 404));
+        }
+
+        const danhSach = await DinhMucMonAn.findAll({
+            where: { id_mon_an },
+            attributes: ["id", "luong_tieu_hao", "don_vi_tinh"],
+            include: [
+                {
+                    model: NguyenLieu,
+                    attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh", "gia_von_binh_quan", "gia_nhap_gan_nhat"],
+                },
+            ],
+        });
+
+        // Tính chi phí nguyên liệu cho từng định mức
+        const danhSachVoiChiPhi = danhSach.map((dm) => {
+            const nl = dm.NguyenLieu;
+            const donGia = Number(nl?.gia_von_binh_quan) > 0
+                ? Number(nl.gia_von_binh_quan)
+                : Number(nl?.gia_nhap_gan_nhat || 0);
+                
+            const luongXuatKho = convertUnit(dm.luong_tieu_hao, dm.don_vi_tinh, nl?.don_vi_tinh);
+            const chiPhiDong = luongXuatKho * donGia;
+            return {
+                id: dm.id,
+                luong_tieu_hao: Number(dm.luong_tieu_hao),
+                don_vi_tinh: dm.don_vi_tinh,
+                NguyenLieu: nl,
+                don_gia_von: donGia,
+                chi_phi: chiPhiDong,
+            };
+        });
+
+        // Tổng chi phí và tỷ lệ cost
+        const tongChiPhi = danhSachVoiChiPhi.reduce((s, d) => s + d.chi_phi, 0);
+        const giaBan = Number(monAn.gia_tien);
+        const tyLeCost = giaBan > 0 ? (tongChiPhi / giaBan) * 100 : 0;
+
+        res.status(200).json({
+            status: "success",
+            mon_an: {
+                id: monAn.id,
+                ten_mon: monAn.ten_mon,
+                gia_tien: giaBan,
+            },
+            results: danhSachVoiChiPhi.length,
+            data: danhSachVoiChiPhi,
+            tong_chi_phi: Math.round(tongChiPhi),
+            ty_le_cost: Math.round(tyLeCost * 100) / 100,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 exports.layTatCaDinhMuc = async (req, res, next) => {
     try {
         const danhSach = await DinhMucMonAn.findAll({
-            attributes: ["id", "luong_tieu_hao"],
+            attributes: ["id", "luong_tieu_hao", "don_vi_tinh"],
             include: [
                 { model: MonAn, attributes: ["id", "ten_mon"] },
                 { model: NguyenLieu, attributes: ["id", "ten_nguyen_lieu", "don_vi_tinh"] },
@@ -54,7 +118,7 @@ exports.layTatCaDinhMuc = async (req, res, next) => {
 
 exports.taoDinhMuc = async (req, res, next) => {
     try {
-        const { id_mon_an, id_nguyen_lieu, luong_tieu_hao } = req.body;
+        const { id_mon_an, id_nguyen_lieu, luong_tieu_hao, don_vi_tinh } = req.body;
 
         if (!id_mon_an || !id_nguyen_lieu || luong_tieu_hao === undefined) {
             return next(new AppError("Vui long cung cap day du: id_mon_an, id_nguyen_lieu, luong_tieu_hao", 400));
@@ -78,6 +142,7 @@ exports.taoDinhMuc = async (req, res, next) => {
             id_mon_an,
             id_nguyen_lieu,
             luong_tieu_hao: Number(luong_tieu_hao),
+            don_vi_tinh: don_vi_tinh || null,
         });
 
         res.status(201).json({
@@ -97,7 +162,7 @@ exports.capNhatDinhMuc = async (req, res, next) => {
             return next(new AppError(`Khong tim thay dinh muc voi ID: ${req.params.id}`, 404));
         }
 
-        const { luong_tieu_hao } = req.body;
+        const { luong_tieu_hao, don_vi_tinh } = req.body;
         if (luong_tieu_hao === undefined) {
             return next(new AppError("Vui long cung cap luong_tieu_hao", 400));
         }
@@ -105,7 +170,10 @@ exports.capNhatDinhMuc = async (req, res, next) => {
             return next(new AppError("Luong tieu hao phai la so duong", 400));
         }
 
-        await dinhMuc.update({ luong_tieu_hao: Number(luong_tieu_hao) });
+        await dinhMuc.update({ 
+            luong_tieu_hao: Number(luong_tieu_hao),
+            don_vi_tinh: don_vi_tinh !== undefined ? don_vi_tinh : dinhMuc.don_vi_tinh
+        });
 
         res.status(200).json({
             status: "success",

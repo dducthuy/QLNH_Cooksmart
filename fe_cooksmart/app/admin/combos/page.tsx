@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Layers, Edit2, Trash2, Loader2, Plus, X, Search, CheckCircle2, Eye } from 'lucide-react';
-import { comboService } from '@/services/combo.service';
-import { dishService } from '@/services/dish.service';
-import { Combo } from '@/types/combo';
+
 import { MonAn } from '@/types/monAn';
 import {
     useAdminToast,
@@ -14,65 +12,19 @@ import {
     AdminDeleteConfirm,
     AdminModal,
 } from '@/components/admin/ui';
-import { uploadService } from '@/services/upload.service';
-import { useSocket } from '@/context/SocketContext';
+
+import { useComboManagement } from '@/hooks/admin/combo/useComboManagement';
+import { useComboForm } from '@/hooks/admin/combo/useComboForm';
 
 // ─── Main Management Page ───────────────────────────────────────────────────
 export default function ComboManagementPage() {
-    const [combos, setCombos] = useState<Combo[]>([]);
-    const [dishes, setDishes] = useState<MonAn[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
-    const [viewingCombo, setViewingCombo] = useState<Combo | null>(null);
-    const [deletingCombo, setDeletingCombo] = useState<Combo | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-
     const { showToast, toastNode } = useAdminToast();
-    const { socket } = useSocket();
-
-    const fetchData = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const [combosData, dishesData] = await Promise.all([
-                comboService.getAll(),
-                dishService.getAll(),
-            ]);
-            setCombos(combosData);
-            setDishes(dishesData);
-        } catch {
-            showToast('Không thể tải dữ liệu!', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showToast]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    const handleAdd = () => { setEditingCombo(null); setIsFormOpen(true); };
-    const handleEdit = (combo: Combo) => { setEditingCombo(combo); setIsFormOpen(true); };
-
-    const handleConfirmDelete = async () => {
-        if (!deletingCombo) return;
-        try {
-            setIsDeleting(true);
-            await comboService.delete(deletingCombo.id);
-            showToast(`Đã xóa "${deletingCombo.ten_combo}" thành công!`);
-            if (socket) socket.emit('cap_nhat_menu');
-            setDeletingCombo(null);
-            fetchData();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Xóa thất bại!', 'error');
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const filtered = combos.filter((c) =>
-        c.ten_combo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const {
+        combos, dishes, isLoading, isFormOpen, setIsFormOpen,
+        editingCombo, viewingCombo, setViewingCombo,
+        deletingCombo, setDeletingCombo, isDeleting, searchTerm, setSearchTerm,
+        handleAdd, handleEdit, handleConfirmDelete, filteredCombos, handleSuccess, fetchData
+    } = useComboManagement(showToast);
 
     const statItems = [
         { label: 'Tổng Combo', value: combos.length, color: 'text-gray-800', bg: 'bg-white', border: 'border-gray-100' },
@@ -102,7 +54,7 @@ export default function ComboManagementPage() {
             <AdminTableCard
                 icon={<Layers size={16} />}
                 title="Danh Sách Combo"
-                count={filtered.length}
+                count={filteredCombos.length}
             >
                 <table className="w-full text-left">
                     <thead>
@@ -124,7 +76,7 @@ export default function ComboManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.length === 0 ? (
+                        ) : filteredCombos.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
@@ -133,7 +85,7 @@ export default function ComboManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.map((combo, index) => (
+                        ) : filteredCombos.map((combo, index) => (
                             <tr key={combo.id} className="group hover:bg-gray-50/80 transition-colors">
                                 <td className="px-6 py-4 text-center font-bold text-gray-400">
                                     {index + 1}
@@ -153,7 +105,7 @@ export default function ComboManagementPage() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 font-black text-[#d9a01e] text-sm">
-                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.gia_tien)}
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(combo.gia_tien))}
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${combo.trang_thai ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-red-500 bg-red-50 border-red-200'}`}>
@@ -189,14 +141,10 @@ export default function ComboManagementPage() {
             {isFormOpen && (
                 <AdminModal onClose={() => setIsFormOpen(false)} maxWidth="max-w-3xl">
                     <ComboForm
-                        combo={editingCombo}
+                        combo={editingCombo ? { ...editingCombo, gia_tien: Number(editingCombo.gia_tien) } : null}
                         dishes={dishes}
                         onClose={() => setIsFormOpen(false)}
-                        onSuccess={() => {
-                            setIsFormOpen(false);
-                            fetchData();
-                            if (socket) socket.emit('cap_nhat_menu');
-                        }}
+                        onSuccess={handleSuccess}
                         showToast={showToast}
                     />
                 </AdminModal>
@@ -219,7 +167,7 @@ export default function ComboManagementPage() {
                             </div>
                             <div className="space-y-2">
                                 <h3 className="text-lg font-black text-gray-800">{viewingCombo.ten_combo}</h3>
-                                <p className="text-2xl font-black text-[#d9a01e]">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewingCombo.gia_tien)}</p>
+                                <p className="text-2xl font-black text-[#d9a01e]">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(viewingCombo.gia_tien))}</p>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${viewingCombo.trang_thai ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-red-500 bg-red-50 border-red-200'}`}>
                                     {viewingCombo.trang_thai ? 'Đang bán' : 'Dừng bán'}
                                 </span>
@@ -237,7 +185,7 @@ export default function ComboManagementPage() {
                                             </div>
                                             <span className="text-sm font-bold text-gray-700">{ct.MonAn?.ten_mon}</span>
                                         </div>
-                                        <span className="text-xs font-bold text-gray-400">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(ct.MonAn?.gia_tien || 0)}/món</span>
+                                        <span className="text-xs font-bold text-gray-400">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(ct.MonAn?.gia_tien) || 0)}/món</span>
                                     </div>
                                 ))}
                             </div>
@@ -267,89 +215,13 @@ export default function ComboManagementPage() {
 
 
 function ComboForm({ combo, dishes, onClose, onSuccess, showToast }: any) {
-    const [formData, setFormData] = useState<any>(combo ? {
-        ...combo,
-        chi_tiet_combo: combo.ChiTietCombos?.map((ct: any) => ({ id_mon_an: ct.id_mon_an, so_luong: ct.so_luong })) || []
-    } : {
-        ten_combo: '',
-        gia_tien: undefined,
-        hinh_anh_combo: '',
-        mo_ta: '',
-        trang_thai: true,
-        chi_tiet_combo: []
-    });
-
-    const [isUploading, setIsUploading] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [dishSearch, setDishSearch] = useState('');
-
-    const handleUpload = async (e: any) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-            setIsUploading(true);
-            const res = await uploadService.uploadImage(file);
-            setFormData({ ...formData, hinh_anh_combo: res.data.url });
-        } catch { showToast('Tải ảnh thất bại!', 'error'); } finally { setIsUploading(false); }
-    };
-
-    const addDish = (dish: MonAn) => {
-        if (formData.chi_tiet_combo.some((d: any) => d.id_mon_an === dish.id)) return;
-        setFormData({
-            ...formData,
-            chi_tiet_combo: [...formData.chi_tiet_combo, { id_mon_an: dish.id, so_luong: 1, ten_mon: dish.ten_mon }]
-        });
-    };
-
-    const removeDish = (id_mon_an: string) => {
-        setFormData({
-            ...formData,
-            chi_tiet_combo: formData.chi_tiet_combo.filter((d: any) => d.id_mon_an !== id_mon_an)
-        });
-    };
-
-    const updateDishQty = (id_mon_an: string, delta: number) => {
-        setFormData({
-            ...formData,
-            chi_tiet_combo: formData.chi_tiet_combo.map((d: any) =>
-                d.id_mon_an === id_mon_an ? { ...d, so_luong: Math.max(1, d.so_luong + delta) } : d
-            )
-        });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (formData.chi_tiet_combo.length === 0) return showToast('Vui lòng chọn ít nhất một món!', 'error');
-        try {
-            setIsSubmitting(true);
-
-            // Làm sạch dữ liệu trước khi gửi lên server
-            const payload = {
-                ten_combo: formData.ten_combo,
-                gia_tien: formData.gia_tien,
-                hinh_anh_combo: formData.hinh_anh_combo,
-                mo_ta: formData.mo_ta,
-                trang_thai: formData.trang_thai,
-                chi_tiet_combo: formData.chi_tiet_combo.map((ct: any) => ({
-                    id_mon_an: ct.id_mon_an,
-                    so_luong: ct.so_luong
-                }))
-            };
-
-            if (combo) await comboService.update(combo.id, payload);
-            else await comboService.create(payload);
-
-            showToast('Lưu combo thành công!');
-            onSuccess();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Lưu thất bại!', 'error');
-        } finally { setIsSubmitting(false); }
-    };
-
-    const filteredDishes = dishes.filter((d: MonAn) =>
-        d.ten_mon.toLowerCase().includes(dishSearch.toLowerCase()) &&
-        !formData.chi_tiet_combo.some((ct: any) => ct.id_mon_an === d.id)
-    );
+    const {
+        formData, setFormData,
+        isUploading, isSubmitting,
+        dishSearch, setDishSearch,
+        handleUpload, addDish, removeDish, updateDishQty,
+        handleSubmit, filteredDishes
+    } = useComboForm(combo, dishes, onSuccess, showToast);
 
     const inputBase = "w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-800 text-sm focus:outline-none focus:border-[#d9a01e] focus:ring-2 focus:ring-[#d9a01e]/10 transition-all placeholder:text-gray-400";
 

@@ -10,6 +10,9 @@ import {
     Clock,
     CreditCard,
     Check,
+    Calendar,
+    Search,
+    RefreshCw,
 } from 'lucide-react';
 import { hoaDonService } from '@/services/hoaDon.service';
 import { HoaDon, TrangThaiHoaDon } from '@/types/hoaDon';
@@ -21,6 +24,8 @@ import {
     AdminTableCard,
     AdminModal,
 } from '@/components/admin/ui';
+import { useOrderManagement } from '@/hooks/admin/order/useOrderManagement';
+import { useOrderDetails } from '@/hooks/admin/order/useOrderDetails';
 
 // ─────────────────────────────────────────────
 //  Config
@@ -81,38 +86,7 @@ function OrderDetailsModal({
     onClose: () => void;
     onStatusUpdate: () => void;
 }) {
-    const [order, setOrder] = useState<HoaDon | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                setIsLoading(true);
-                const data = await hoaDonService.getById(orderId);
-                setOrder(data);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchDetails();
-    }, [orderId]);
-
-    const handleUpdateStatus = async (newStatus: TrangThaiHoaDon) => {
-        try {
-            setIsUpdating(true);
-            await hoaDonService.updateStatus(orderId, { trang_thai_hd: newStatus });
-            const data = await hoaDonService.getById(orderId);
-            setOrder(data);
-            onStatusUpdate();
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+    const { order, isLoading, isUpdating, handleUpdateStatus } = useOrderDetails(orderId, onStatusUpdate);
 
     return (
         <div className="bg-white rounded-3xl p-6 flex flex-col h-full max-h-[85vh]">
@@ -150,50 +124,63 @@ function OrderDetailsModal({
                             </div>
                             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Thanh Toán</p>
-                                <p className="text-sm font-bold text-gray-700 flex items-center gap-1.5"><CreditCard size={14}/> {order.phuong_thuc_tt === "TienMat" ? "Tiền mặt" : "Chuyển khoản"}</p>
+                                <p className="text-sm font-bold text-gray-700 flex items-center gap-1.5"><CreditCard size={14} /> {order.phuong_thuc_tt === "TienMat" ? "Tiền mặt" : order.phuong_thuc_tt === "ZaloPay" ? "ZaloPay" : "Chuyển khoản"}</p>
                             </div>
                         </div>
 
                         <div>
                             <h3 className="text-sm font-black uppercase text-gray-800 mb-3 tracking-widest pl-2 border-l-4 border-[#d9a01e]">Danh sách món ({order.ChiTietHoaDons?.length || 0})</h3>
                             <div className="space-y-3">
-                                {order.ChiTietHoaDons?.map((item: any, idx: number) => {
-                                    const productName = item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn không việt';
-                                    const productPrice = Number(item.MonAn?.gia_tien || item.Combo?.gia_tien || 0);
-                                    const image = item.MonAn?.hinh_anh || item.Combo?.hinh_anh;
+                                {(() => {
+                                    const displayMap = new Map<string, any>();
+                                    (order.ChiTietHoaDons || []).forEach((item: any) => {
+                                        const key = `${item.id_mon_an || item.id_combo}-${item.trang_thai_mon}-${item.ghi_chu || ""}`;
+                                        if (displayMap.has(key)) {
+                                            displayMap.get(key).so_luong += item.so_luong;
+                                        } else {
+                                            displayMap.set(key, { ...item });
+                                        }
+                                    });
+                                    const displayItems = Array.from(displayMap.values());
 
-                                    return (
-                                        <div key={item.id || idx} className="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                {image ? (
-                                                    <img src={image} alt={productName} className="w-12 h-12 object-cover rounded-xl border border-gray-200" />
-                                                ) : (
-                                                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400 border border-gray-200">No img</div>
-                                                )}
-                                                <div>
-                                                    <p className="font-bold text-gray-800 text-sm">{productName}</p>
-                                                    <p className="text-xs text-gray-500">{formatVND(productPrice)} x <span className="font-bold text-gray-800">{item.so_luong}</span></p>
+                                    return displayItems.map((item: any, idx: number) => {
+                                        const productName = item.MonAn?.ten_mon || item.Combo?.ten_combo || 'Món ăn không việt';
+                                        const productPrice = Number(item.MonAn?.gia_tien || item.Combo?.gia_tien || 0);
+                                        const image = item.MonAn?.hinh_anh || item.Combo?.hinh_anh;
+
+                                        return (
+                                            <div key={item.id || idx} className="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    {image ? (
+                                                        <img src={image} alt={productName} className="w-12 h-12 object-cover rounded-xl border border-gray-200" />
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400 border border-gray-200">No img</div>
+                                                    )}
+                                                    <div>
+                                                        <p className="font-bold text-gray-800 text-sm">{productName}</p>
+                                                        <p className="text-xs text-gray-500">{formatVND(productPrice)} x <span className="font-bold text-gray-800">{item.so_luong}</span></p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-black text-[#d9a01e] text-sm">{formatVND(productPrice * Number(item.so_luong))}</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 mt-1">{item.trang_thai_mon}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="font-black text-[#d9a01e] text-sm">{formatVND(productPrice * Number(item.so_luong))}</p>
-                                                <p className="text-[10px] font-bold text-gray-400 mt-1">{item.trang_thai_mon}</p>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    });
+                                })()}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-2 p-5 bg-[#f8f9fa] rounded-3xl border border-gray-200">
-                             <div className="flex justify-between items-center text-sm font-bold text-gray-600">
+                            <div className="flex justify-between items-center text-sm font-bold text-gray-600">
                                 <span>Giảm giá {order.KhuyenMai ? `(${order.KhuyenMai.ten_km})` : ''}</span>
                                 <span>-</span>
-                             </div>
-                             <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                                 <span className="font-black uppercase tracking-widest text-[#d9a01e] text-lg">Tổng tiền</span>
                                 <span className="font-black text-[#d9a01e] text-2xl">{formatVND(Number(order.tong_tien))}</span>
-                             </div>
+                            </div>
                         </div>
                     </>
                 ) : (
@@ -223,45 +210,12 @@ function OrderDetailsModal({
 //  Main Page
 // ─────────────────────────────────────────────
 export default function OrderManagementPage() {
-    const [orders, setOrders] = useState<HoaDon[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState<string>('all');
-    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-
     const { showToast, toastNode } = useAdminToast();
-
-    const fetchOrders = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const data = await hoaDonService.getAll();
-            setOrders(data);
-        } catch {
-            showToast('Không thể tải danh sách đơn hàng!', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showToast]);
-
-    useEffect(() => { fetchOrders(); }, [fetchOrders]);
-
-    // ── Filter ──
-    const filtered = orders.filter((o) => {
-        const matchSearch =
-            o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (o.BanAn?.so_ban || 'Mang về').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchStatus = filterStatus === 'all' || o.trang_thai_hd === filterStatus;
-        return matchSearch && matchStatus;
-    });
-
-    // ── Counts ──
-    const counts = {
-        total: orders.length,
-        choxuly: orders.filter((o) => o.trang_thai_hd === 'ChoXuLy').length,
-        dangphucvu: orders.filter((o) => o.trang_thai_hd === 'DangPhucVu').length,
-        dathanhtoan: orders.filter((o) => o.trang_thai_hd === 'DaThanhToan').length,
-        huy: orders.filter((o) => o.trang_thai_hd === 'DaHuy').length,
-    };
+    const {
+        isLoading, searchTerm, setSearchTerm, filterStatus, setFilterStatus,
+        tuNgay, setTuNgay, denNgay, setDenNgay, selectedOrderId, setSelectedOrderId,
+        fetchOrders, filteredOrders, counts
+    } = useOrderManagement(showToast);
 
     // ── Stat items ──
     const statItems = [
@@ -289,25 +243,75 @@ export default function OrderManagementPage() {
                 icon={<CalendarCheck size={22} className="text-white" />}
                 title="Quản Lý Đơn Hàng"
                 subtitle={`${counts.total} đơn hàng • ${counts.choxuly} chờ xử lý`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm mã đơn, tên bàn..."
-                onRefresh={fetchOrders}
-                isLoading={isLoading}
             />
 
             <AdminStatCards items={statItems} cols={5} />
 
-            <AdminFilterTabs
-                tabs={filterTabs}
-                active={filterStatus}
-                onChange={setFilterStatus}
-            />
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Trạng thái:</label>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="w-full sm:w-36 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            {filterTabs.map(tab => (
+                                <option key={tab.value} value={tab.value}>{tab.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Date range filter */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Ngày:</label>
+                        <div className="flex items-center gap-1">
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={tuNgay} onChange={e => setTuNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                            <span className="text-gray-300 font-black">→</span>
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={denNgay} onChange={e => setDenNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-52">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm mã đơn, tên bàn..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    {(searchTerm || filterStatus !== 'all' || tuNgay || denNgay) && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setFilterStatus('all'); setTuNgay(''); setDenNgay(''); }}
+                            className="p-2 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <AdminTableCard
                 icon={<CalendarCheck size={16} />}
                 title="Danh Sách Đơn Hàng"
-                count={filtered.length}
+                count={filteredOrders.length}
             >
                 <table className="w-full text-left">
                     <thead>
@@ -331,7 +335,7 @@ export default function OrderManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.length === 0 ? (
+                        ) : filteredOrders.length === 0 ? (
                             <tr>
                                 <td colSpan={7} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
@@ -340,7 +344,7 @@ export default function OrderManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.map((order, index) => {
+                        ) : filteredOrders.map((order, index) => {
                             const statusCfg = STATUS_CONFIG[order.trang_thai_hd];
                             return (
                                 <tr key={order.id} className="group hover:bg-gray-50/80 transition-colors">
@@ -376,7 +380,7 @@ export default function OrderManagementPage() {
                                                 {formatVND(Number(order.tong_tien))}
                                             </span>
                                             <span className="text-[10px] text-gray-400 font-bold">
-                                                {order.phuong_thuc_tt === 'TienMat' ? 'Tiền mặt' : 'Chuyển khoản'}
+                                                {order.phuong_thuc_tt === 'TienMat' ? 'Tiền mặt' : order.phuong_thuc_tt === 'ZaloPay' ? 'ZaloPay' : 'Chuyển khoản'}
                                             </span>
                                         </div>
                                     </td>

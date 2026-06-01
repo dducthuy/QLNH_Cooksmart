@@ -19,7 +19,7 @@ const { Op } = require("sequelize");
 exports.nhapKho = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
-        const { items } = req.body;
+        const { items, ghi_chu } = req.body;
         const id_nguoi_thuc_hien = req.nguoiDung.id;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -28,12 +28,13 @@ exports.nhapKho = async (req, res, next) => {
 
         const maPhieu = `PN${new Date().getTime().toString().slice(-6)}`;
 
-        
+
         const phieu = await NhatKyKho.create({
             ma_phieu: maPhieu,
             loai_giao_dich: "NHAP_HANG",
             id_nguoi_thuc_hien,
-            thoi_gian: new Date()
+            thoi_gian: new Date(),
+            ghi_chu
         }, { transaction: t });
 
         const chiTiets = [];
@@ -50,7 +51,7 @@ exports.nhapKho = async (req, res, next) => {
                 throw new AppError(`Không tìm thấy nguyên liệu ID: ${id_nguyen_lieu}`, 404);
             }
 
-            
+
             const soLuongCu = Number(nguyenLieu.so_luong_ton);
             const giaVonCu = Number(nguyenLieu.gia_von_binh_quan) > 0
                 ? Number(nguyenLieu.gia_von_binh_quan)
@@ -62,14 +63,14 @@ exports.nhapKho = async (req, res, next) => {
                 ? Math.round((soLuongCu * giaVonCu + soLuongNhap * giaNhapMoi) / soLuongMoi)
                 : 0;
 
-            
+
             await nguyenLieu.update({
                 so_luong_ton: soLuongMoi,
                 gia_nhap_gan_nhat: giaNhapMoi,
                 gia_von_binh_quan: giaVonBinhQuanMoi
             }, { transaction: t });
 
-            
+
             const chiTiet = await ChiTietNhatKyKho.create({
                 id_nhat_ky_kho: phieu.id,
                 id_nguyen_lieu,
@@ -89,6 +90,9 @@ exports.nhapKho = async (req, res, next) => {
             data: { phieu, chiTiets }
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
+
     } catch (error) {
         if (t) await t.rollback();
         next(error);
@@ -103,7 +107,7 @@ exports.nhapKho = async (req, res, next) => {
 exports.xuatKho = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
-        const { items } = req.body;
+        const { items, ghi_chu } = req.body;
         const id_nguoi_thuc_hien = req.nguoiDung.id;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -114,12 +118,13 @@ exports.xuatKho = async (req, res, next) => {
         const prefix = loaiGiaoDich === "HUY_HANG" ? "PH" : "PX";
         const maPhieu = `${prefix}${new Date().getTime().toString().slice(-6)}`;
 
-        
+
         const phieu = await NhatKyKho.create({
             ma_phieu: maPhieu,
             loai_giao_dich: loaiGiaoDich,
             id_nguoi_thuc_hien,
-            thoi_gian: new Date()
+            thoi_gian: new Date(),
+            ghi_chu
         }, { transaction: t });
 
         const chiTiets = [];
@@ -152,7 +157,7 @@ exports.xuatKho = async (req, res, next) => {
                 so_luong_ton: soLuongCu - Number(so_luong_xuat)
             }, { transaction: t });
 
-            
+
             const chiTiet = await ChiTietNhatKyKho.create({
                 id_nhat_ky_kho: phieu.id,
                 id_nguyen_lieu,
@@ -172,6 +177,9 @@ exports.xuatKho = async (req, res, next) => {
             data: { phieu, chiTiets }
         });
 
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
+
     } catch (error) {
         if (t) await t.rollback();
         next(error);
@@ -186,7 +194,7 @@ exports.xuatKho = async (req, res, next) => {
 exports.kiemKeKho = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
-        const { items } = req.body;
+        const { items, ghi_chu } = req.body;
         const id_nguoi_thuc_hien = req.nguoiDung.id;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -196,12 +204,13 @@ exports.kiemKeKho = async (req, res, next) => {
         const maPhieu = `KK${new Date().getTime().toString().slice(-6)}`;
         let tongGiaVonBanHang = 0;
 
-        
+
         const phieu = await NhatKyKho.create({
             ma_phieu: maPhieu,
             loai_giao_dich: "KIEM_KE_CHOT_LO",
             id_nguoi_thuc_hien,
-            thoi_gian: new Date()
+            thoi_gian: new Date(),
+            ghi_chu
         }, { transaction: t });
 
         const ketQuaKiemKe = [];
@@ -228,10 +237,10 @@ exports.kiemKeKho = async (req, res, next) => {
             const tienTieuHao = chenhLech * giaVon;
             tongGiaVonBanHang += tienTieuHao;
 
-            
+
             await nguyenLieu.update({ so_luong_ton: soLuongDemDuoc }, { transaction: t });
 
-            
+
             await ChiTietNhatKyKho.create({
                 id_nhat_ky_kho: phieu.id,
                 id_nguyen_lieu,
@@ -240,7 +249,7 @@ exports.kiemKeKho = async (req, res, next) => {
                 thanh_tien: soLuongDemDuoc * giaVon
             }, { transaction: t });
 
-            
+
             const chiTietHaoHut = await ChiTietBaoCaoHaoHut.create({
                 id_nhat_ky_kho: phieu.id,
                 id_nguyen_lieu,
@@ -253,7 +262,7 @@ exports.kiemKeKho = async (req, res, next) => {
             ketQuaKiemKe.push({ nguyenLieu, chiTietHaoHut });
         }
 
-        
+
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
         const endOfDay = new Date(today.setHours(23, 59, 59, 999));
@@ -295,6 +304,9 @@ exports.kiemKeKho = async (req, res, next) => {
             message: `Kiểm kê thành công ${items.length} mặt hàng! Đã cập nhật Báo cáo tài chính.`,
             data: { phieu, ketQuaKiemKe }
         });
+
+        const io = req.app.get("socketio");
+        if (io) io.emit("cap_nhat_kho");
 
     } catch (error) {
         if (t) await t.rollback();
@@ -370,7 +382,7 @@ exports.layDanhSachPhieuNhapXuat = async (req, res, next) => {
             order: [["thoi_gian", "DESC"]]
         });
 
-        
+
         const result = danhSach.map(phieu => ({
             id: phieu.id,
             ma_phieu: phieu.ma_phieu,
@@ -403,7 +415,8 @@ exports.layChiTietPhieuNhapXuat = async (req, res, next) => {
                     include: [{ model: NguyenLieu, attributes: ["ten_nguyen_lieu", "don_vi_tinh"] }]
                 },
                 { model: NguoiDung, attributes: ["ho_ten"] }
-            ]
+            ],
+            attributes: { include: ["ghi_chu"] }
         });
 
         if (!phieu) return next(new AppError("Không tìm thấy phiếu", 404));
@@ -485,7 +498,7 @@ exports.layBaoCaoHaoHut = async (req, res, next) => {
 
         if (id_nguyen_lieu) whereClause.id_nguyen_lieu = id_nguyen_lieu;
 
-        
+
         const wherePhieu = {};
         if (tu_ngay || den_ngay) {
             wherePhieu.thoi_gian = {};

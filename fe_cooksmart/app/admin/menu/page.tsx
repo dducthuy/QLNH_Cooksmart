@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ChefHat, Edit2, Trash2, Loader2 } from 'lucide-react';
-import { dishService } from '@/services/dish.service';
-import { categoryService } from '@/services/category.service';
-import { MonAn } from '@/types/monAn';
-import { DanhMuc } from '@/types/danhMuc';
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { ChefHat, Edit2, Trash2, Loader2, FlaskConical, Search, X, RefreshCw } from 'lucide-react';
 import DynamicForm, { FormField } from '@/components/admin/form/DynamicForm';
 import {
     useAdminToast,
@@ -16,80 +13,18 @@ import {
     AdminDeleteConfirm,
     AdminModal,
 } from '@/components/admin/ui';
-import { useSocket } from '@/context/SocketContext';
+import { useMenuManagement } from '@/hooks/admin/menu/useMenuManagement';
 
 export default function MenuManagementPage() {
-    const [dishes, setDishes] = useState<MonAn[]>([]);
-    const [categories, setCategories] = useState<DanhMuc[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingDish, setEditingDish] = useState<MonAn | null>(null);
-    const [deletingDish, setDeletingDish] = useState<MonAn | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategory, setFilterCategory] = useState('all');
-
     const { showToast, toastNode } = useAdminToast();
-    const { socket } = useSocket();
+    const router = useRouter();
 
-    const fetchData = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const [dishesData, categoriesData] = await Promise.all([
-                dishService.getAll(),
-                categoryService.getAll(),
-            ]);
-            setDishes(dishesData);
-            setCategories(categoriesData);
-        } catch {
-            showToast('Không thể tải dữ liệu!', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showToast]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    const handleAdd = () => { setEditingDish(null); setIsFormOpen(true); };
-    const handleEdit = (dish: MonAn) => { setEditingDish(dish); setIsFormOpen(true); };
-
-    const handleSubmit = async (data: any) => {
-        try {
-            setIsSubmitting(true);
-            if (editingDish) {
-                await dishService.update(editingDish.id, data);
-                showToast(`Đã cập nhật "${data.ten_mon}" thành công!`);
-            } else {
-                await dishService.create(data);
-                showToast(`Đã thêm "${data.ten_mon}" thành công!`);
-            }
-            setIsFormOpen(false);
-            if (socket) socket.emit('cap_nhat_menu');
-            fetchData();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Lưu thất bại!', 'error');
-            throw err;
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!deletingDish) return;
-        try {
-            setIsDeleting(true);
-            await dishService.delete(deletingDish.id);
-            showToast(`Đã xóa "${deletingDish.ten_mon}" thành công!`);
-            if (socket) socket.emit('cap_nhat_menu');
-            setDeletingDish(null);
-            fetchData();
-        } catch (err: any) {
-            showToast(err?.response?.data?.message || 'Xóa thất bại!', 'error');
-        } finally {
-            setIsDeleting(false);
-        }
-    };
+    const {
+        dishes, categories, isLoading, isFormOpen, setIsFormOpen,
+        editingDish, deletingDish, setDeletingDish, isDeleting, isSubmitting,
+        searchTerm, setSearchTerm, filterCategory, setFilterCategory,
+        fetchData, handleAdd, handleEdit, handleSubmit, handleConfirmDelete, filteredDishes
+    } = useMenuManagement(showToast);
 
     const formFields: FormField[] = [
         { key: 'ten_mon', label: 'Tên Món Ăn', type: 'text', placeholder: 'Ví dụ: Bún Bò Huế', required: true },
@@ -106,18 +41,11 @@ export default function MenuManagementPage() {
         { key: 'con_hang', label: 'Trạng thái', type: 'checkbox' },
     ];
 
-    // ── Filter ──
-    const filtered = dishes.filter((d) => {
-        const matchSearch = d.ten_mon.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchCat = filterCategory === 'all' || d.DanhMuc?.id === filterCategory;
-        return matchSearch && matchCat;
-    });
-
     // ── Stat items ──
     const statItems = [
         { label: 'Tổng Món', value: dishes.length, color: 'text-gray-800', bg: 'bg-white', border: 'border-gray-100' },
-        { label: 'Còn Hàng', value: dishes.filter(d => d.con_hang).length, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-        { label: 'Hết Hàng', value: dishes.filter(d => !d.con_hang).length, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100' },
+        { label: 'Còn Bán', value: dishes.filter(d => d.con_hang).length, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+        { label: 'Ngừng Bán', value: dishes.filter(d => !d.con_hang).length, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100' },
     ];
 
     // ── Filter tabs ──
@@ -136,12 +64,7 @@ export default function MenuManagementPage() {
             <AdminPageHeader
                 icon={<ChefHat size={22} className="text-white" />}
                 title="Quản Lý Thực Đơn"
-                subtitle={`${dishes.length} món • ${dishes.filter(d => d.con_hang).length} còn hàng`}
-                searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
-                searchPlaceholder="Tìm kiếm món ăn..."
-                onRefresh={fetchData}
-                isLoading={isLoading}
+                subtitle={`${dishes.length} món • ${dishes.filter(d => d.con_hang).length} còn bán`}
                 onAdd={handleAdd}
                 addLabel="Thêm Món"
             />
@@ -149,18 +72,60 @@ export default function MenuManagementPage() {
             {/* Stat Cards */}
             <AdminStatCards items={statItems} cols={3} />
 
-            {/* Filter Tabs */}
-            <AdminFilterTabs
-                tabs={filterTabs}
-                active={filterCategory}
-                onChange={setFilterCategory}
-            />
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Lọc danh mục:</label>
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="w-full sm:max-w-xs bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                    >
+                        {filterTabs.map(tab => (
+                            <option key={tab.value} value={tab.value}>{tab.label}</option>
+                        ))}
+                    </select>
+                </div>
+                
+                {/* Search, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative group w-full md:w-56">
+                        <Search
+                            size={15}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#d9a01e] transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm món ăn..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#d9a01e]/50 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={fetchData}
+                        title="Làm mới"
+                        className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 hover:text-[#d9a01e] hover:border-[#d9a01e]/30 transition-all shrink-0"
+                    >
+                        <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                    {(searchTerm || filterCategory !== 'all') && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setFilterCategory('all'); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa tìm kiếm và lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {/* Table */}
             <AdminTableCard
                 icon={<ChefHat size={16} />}
                 title="Danh Sách Món Ăn"
-                count={filtered.length}
+                count={filteredDishes.length}
             >
                 <table className="w-full text-left">
                     <thead>
@@ -183,7 +148,7 @@ export default function MenuManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.length === 0 ? (
+                        ) : filteredDishes.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="px-6 py-16 text-center">
                                     <div className="flex flex-col items-center gap-3">
@@ -192,7 +157,7 @@ export default function MenuManagementPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filtered.map((dish, index) => (
+                        ) : filteredDishes.map((dish, index) => (
                             <tr key={dish.id} className="group hover:bg-gray-50/80 transition-colors">
                                 <td className="px-6 py-4 text-center font-bold text-gray-400">
                                     {index + 1}
@@ -218,17 +183,24 @@ export default function MenuManagementPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className="text-sm font-black text-[#d9a01e]">
-                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(dish.gia_tien)}
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(dish.gia_tien))}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${dish.con_hang ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-red-500 bg-red-50 border-red-200'}`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${dish.con_hang ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`} />
-                                        {dish.con_hang ? 'Còn hàng' : 'Hết hàng'}
+                                        {dish.con_hang ? 'Còn bán' : 'Ngừng bán'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center justify-end gap-1.5">
+                                        <button
+                                            onClick={() => router.push(`/admin/menu/dinh-muc/${dish.id}`)}
+                                            className="p-2 bg-gray-100 hover:bg-purple-50 text-gray-500 hover:text-purple-600 rounded-xl border border-gray-200 hover:border-purple-200 transition-all"
+                                            title="Định mức nguyên liệu"
+                                        >
+                                            <FlaskConical size={14} />
+                                        </button>
                                         <button onClick={() => handleEdit(dish)}
                                             className="p-2 bg-gray-100 hover:bg-[#d9a01e]/15 text-gray-500 hover:text-[#d9a01e] rounded-xl border border-gray-200 hover:border-[#d9a01e]/30 transition-all"
                                             title="Chỉnh sửa">
@@ -254,7 +226,7 @@ export default function MenuManagementPage() {
                         <DynamicForm
                             title={editingDish ? 'Chỉnh Sửa Món Ăn' : 'Thêm Món Ăn Mới'}
                             fields={formFields}
-                            initialData={editingDish || { con_hang: true }}
+                            initialData={editingDish ? { ...editingDish, gia_tien: Number(editingDish.gia_tien) } : { con_hang: true }}
                             onSubmit={handleSubmit}
                             onCancel={() => setIsFormOpen(false)}
                             isLoading={isSubmitting}

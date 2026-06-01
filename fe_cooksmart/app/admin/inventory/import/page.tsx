@@ -14,6 +14,9 @@ import {
     Save,
     Trash2,
     X,
+    Search,
+    RefreshCw,
+    Calendar,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { nguyenLieuService } from '@/services/nguyenLieu.service';
@@ -57,11 +60,18 @@ export default function StockImportExportPage() {
     const [receipts, setReceipts] = useState<PhieuNhapXuatSummary[]>([]);
     const [mode, setMode] = useState<StockMode>('NHAP_HANG');
     const [lines, setLines] = useState<StockLine[]>([emptyLine()]);
+    const [ghiChu, setGhiChu] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState<PhieuNhapXuatDetail | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDetailLoading, setIsDetailLoading] = useState(false);
+    
+    // Filters for receipts table
+    const [loaiPhieuFilter, setLoaiPhieuFilter] = useState('all');
+    const [tuNgay, setTuNgay] = useState('');
+    const [denNgay, setDenNgay] = useState('');
+
     const { showToast, toastNode } = useAdminToast();
 
     const fetchData = useCallback(async () => {
@@ -112,7 +122,10 @@ export default function StockImportExportPage() {
         setLines((current) => current.length === 1 ? [emptyLine()] : current.filter((_, i) => i !== index));
     };
 
-    const resetForm = () => setLines([emptyLine()]);
+    const resetForm = () => {
+        setLines([emptyLine()]);
+        setGhiChu('');
+    };
 
     const validLines = lines
         .map((line) => ({
@@ -135,6 +148,11 @@ export default function StockImportExportPage() {
             return;
         }
 
+        if ((mode === 'HUY_HANG' || mode === 'XUAT_BAN') && !ghiChu.trim()) {
+            showToast('Vui lòng nhập ghi chú (lý do hủy, xuất cho ai...)', 'error');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
             if (mode === 'NHAP_HANG') {
@@ -144,6 +162,7 @@ export default function StockImportExportPage() {
                         so_luong_nhap: line.so_luong_num,
                         gia_nhap: line.don_gia_num,
                     })),
+                    ghi_chu: ghiChu,
                 });
                 showToast('Nhập kho thành công');
             } else {
@@ -153,6 +172,7 @@ export default function StockImportExportPage() {
                         so_luong_xuat: line.so_luong_num,
                         loai_giao_dich: mode,
                     })),
+                    ghi_chu: ghiChu,
                 });
                 showToast(mode === 'HUY_HANG' ? 'Đã ghi nhận hủy hàng' : 'Xuất kho thành công');
             }
@@ -237,7 +257,27 @@ export default function StockImportExportPage() {
         window.print();
     };
 
-    const filteredReceipts = receipts.filter((item) => item.loai_giao_dich !== 'KIEM_KE_CHOT_LO');
+    const filteredReceipts = receipts.filter((item) => {
+        if (item.loai_giao_dich === 'KIEM_KE_CHOT_LO') return false;
+        
+        let matchType = loaiPhieuFilter === 'all' || item.loai_giao_dich === loaiPhieuFilter;
+        
+        let matchDate = true;
+        const itemDate = new Date(item.thoi_gian);
+
+        if (tuNgay) {
+            const [year, month, day] = tuNgay.split('-').map(Number);
+            const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+            matchDate = matchDate && itemDate >= startDate;
+        }
+        if (denNgay) {
+            const [year, month, day] = denNgay.split('-').map(Number);
+            const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+            matchDate = matchDate && itemDate <= endDate;
+        }
+
+        return matchType && matchDate;
+    });
 
     return (
         <div className="space-y-6 relative pb-10">
@@ -361,6 +401,20 @@ export default function StockImportExportPage() {
                     </table>
                 </div>
 
+                <div className="px-6 py-4 bg-white border-t border-gray-100">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">
+                        Ghi chú {mode !== 'NHAP_HANG' && <span className="text-red-500">*</span>}
+                    </label>
+                    <textarea
+                        value={ghiChu}
+                        onChange={(e) => setGhiChu(e.target.value)}
+                        placeholder={mode === 'NHAP_HANG' ? "Nhập ghi chú (không bắt buộc)..." : "Nhập ghi chú (bắt buộc khi xuất/hủy hàng)..."}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:border-[#d9a01e] resize-none"
+                        rows={2}
+                        required={mode !== 'NHAP_HANG'}
+                    />
+                </div>
+
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-4 border-t border-gray-100 bg-gray-50">
                     <div className="text-sm text-gray-500 font-medium">
                         {mode === 'NHAP_HANG' ? `Tong gia tri: ${formatMoney(totalValue)}` : 'Gia xuat kho lay theo gia von binh quan'}
@@ -375,6 +429,56 @@ export default function StockImportExportPage() {
                     </button>
                 </div>
             </form>
+
+            {/* Filter for Receipts */}
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full md:w-auto">
+                    {/* Loại phiếu filter */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Loại:</label>
+                        <select
+                            value={loaiPhieuFilter}
+                            onChange={(e) => setLoaiPhieuFilter(e.target.value)}
+                            className="w-full sm:w-40 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#d9a01e] focus:bg-white transition-all"
+                        >
+                            <option value="all">Tất cả</option>
+                            <option value="NHAP_HANG">Nhập hàng</option>
+                            <option value="XUAT_BAN">Xuất bán</option>
+                            <option value="HUY_HANG">Hủy hàng</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Date, Refresh & Reset */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    {/* Date range filter */}
+                    <div className="flex items-center gap-2 mr-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Ngày:</label>
+                        <div className="flex items-center gap-1">
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={tuNgay} onChange={e => setTuNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                            <span className="text-gray-300 font-black">→</span>
+                            <div className="relative">
+                                <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" value={denNgay} onChange={e => setDenNgay(e.target.value)}
+                                    className="pl-7 pr-2 py-2 text-gray-600 text-xs font-bold uppercase tracking-widest bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#d9a01e] focus:bg-white transition-all shadow-sm w-32" />
+                            </div>
+                        </div>
+                    </div>
+                    {(loaiPhieuFilter !== 'all' || tuNgay || denNgay) && (
+                        <button
+                            onClick={() => { setLoaiPhieuFilter('all'); setTuNgay(''); setDenNgay(''); }}
+                            className="p-2.5 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl border border-transparent transition-all shrink-0"
+                            title="Xóa lọc"
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             <AdminTableCard icon={<PackageSearch size={16} />} title="Phieu nhap / xuat gan day" count={filteredReceipts.length}>
                 <table className="w-full text-left border-collapse">
@@ -538,7 +642,7 @@ export default function StockImportExportPage() {
                                                         <td className="px-5 py-4 text-center font-bold text-gray-400">{idx + 1}</td>
                                                         <td className="px-5 py-4 font-black uppercase tracking-tight">{ct.NguyenLieu?.ten_nguyen_lieu}</td>
                                                         <td className="px-5 py-4 text-center font-bold text-gray-500">{ct.NguyenLieu?.don_vi_tinh || '-'}</td>
-                                                        <td className="px-5 py-4 text-right font-black">{ct.so_luong}</td>
+                                                        <td className="px-5 py-4 text-right font-black">{Number(ct.so_luong)}</td>
                                                         <td className="px-5 py-4 text-right font-bold text-gray-600">{formatMoney(ct.don_gia)}</td>
                                                         <td className="px-5 py-4 text-right font-black text-gray-900">{formatMoney(ct.thanh_tien)}</td>
                                                     </tr>
